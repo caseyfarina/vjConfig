@@ -1,0 +1,241 @@
+#pragma kernel PixelSortH
+#pragma kernel PixelSortV
+
+// --- Inputs ---
+Texture2D<float4> _SourceTexture;
+RWTexture2D<float4> _OutputTexture;
+
+float _ThresholdLow;
+float _ThresholdHigh;
+int _SortMode;          // 0=Luminance, 1=Hue, 2=Saturation, 3=Value/Brightness
+int _ThresholdMode;     // 0=Luminance, 1=Hue, 2=Saturation, 3=Value/Brightness
+int _SortDirection;     // 0=Ascending (dark to light), 1=Descending (light to dark)
+int _Width;
+int _Height;
+float _Strength;        // 0-1 lerp between original and sorted result
+int _MaxSpanLength;     // Cap on span length (0 = unlimited)
+
+// Shared memory for row/column processing
+// Max resolution width/height we can handle per thread group
+#define MAX_LINE_LENGTH 3840
+
+groupshared float4 gs_pixels[MAX_LINE_LENGTH];
+groupshared float gs_sortKeys[MAX_LINE_LENGTH];
+groupshared float gs_thresholdKeys[MAX_LINE_LENGTH];
+groupshared int gs_spanIDs[MAX_LINE_LENGTH];
+
+// --- Color space helpers ---
+
+float GetLuminance(float3 c)
+{
+    return dot(c, float3(0.2126, 0.7152, 0.0722));
+}
+
+float3 RGBtoHSV(float3 c)
+{
+    float4 K = float4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+    float4 p = lerp(float4(c.bg, K.wz), float4(c.gb, K.xy), step(c.b, c.g));
+    float4 q = lerp(float4(p.xyw, c.r), float4(c.r, p.yzx), step(p.x, c.r));
+
+    float d = q.x - min(q.w, q.y);
+    float e = 1.0e-10;
+    return float3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+}
+
+float GetKeyValue(float3 rgb, int mode)
+{
+    float3 hsv;
+    switch (mode)
+    {
+        case 0: return GetLuminance(rgb);
+        case 1:
+            hsv = RGBtoHSV(rgb);
+            return hsv.x;
+        case 2:
+            hsv = RGBtoHSV(rgb);
+            return hsv.y;
+        case 3:
+            hsv = RGBtoHSV(rgb);
+            return hsv.z;
+        default: return GetLuminance(rgb);
+    }
+}
+
+// --- Span identification ---
+// Pixels within [_ThresholdLow, _ThresholdHigh] based on threshold mode
+// are marked as "sortable". Contiguous sortable pixels form a span.
+
+bool IsSortable(float thresholdKey)
+{
+    return thresholdKey >= _ThresholdLow && thresholdKey <= _ThresholdHigh;
+}
+
+// --- Bitonic sort within a span ---
+// Sorts gs_sortKeys (and corresponding gs_pixels) in-place
+// between indices [spanStart, spanEnd)
+
+void BitonicSortSpan(int spanStart, int spanEnd, int lineLength)
+{
+    int spanLen = spanEnd - spanStart;
+    if (spanLen <= 1) return;
+
+    // Bitonic sort requires power-of-2 steps but we handle arbitrary lengths
+    // by masking out-of-range comparisons
+    int logN = 0;
+    int temp = 1;
+    while (temp < spanLen) { temp <<= 1; logN++; }
+    int paddedLen = temp;
+
+    for (int k = 2; k <= paddedLen; k <<= 1)
+    {
+        for (int j = k >> 1; j > 0; j >>= 1)
+        {
+            GroupMemoryBarrierWithGroupSync();
+
+            // Each thread handles one element in the span
+            for (int t = 0; t < spanLen; t++)
+            {
+                int i = t;
+                int ixj = i ^ j;
+
+                if (ixj > i && ixj < spanLen)
+                {
+                    int gi = spanStart + i;
+                    int gixj = spanStart + ixj;
+
+                    bool ascending = ((i & k) == 0);
+                    if (_SortDirection == 1) ascending = !ascending;
+
+                    float a = gs_sortKeys[gi];
+                    float b = gs_sortKeys[gixj];
+
+                    if ((ascending && a > b) || (!ascending && a < b))
+                    {
+                        // Swap keys
+                        gs_sortKeys[gi] = b;
+                        gs_sortKeys[gixj] = a;
+
+                        // Swap pixels
+                        float4 tmpPx = gs_pixels[gi];
+                        gs_pixels[gi] = gs_pixels[gixj];
+                        gs_pixels[gixj] = tmpPx;
+                    }
+                }
+            }
+        }
+    }
+
+    GroupMemoryBarrierWithGroupSync();
+}
+
+// --- Main processing for a single row or column ---
+
+void ProcessLine(int lineIndex, int lineLength, bool horizontal)
+{
+    // Clamp to maximum supported length
+    lineLength = min(lineLength, MAX_LINE_LENGTH);
+
+    // Phase 1: Load pixels into shared memory and compute keys
+    for (int i = 0; i < lineLength; i++)
+    {
+        int2 coord;
+        if (horizontal)
+            coord = int2(i, lineIndex);
+        else
+            coord = int2(lineIndex, i);
+
+        gs_pixels[i] = _SourceTexture[coord];
+        gs_sortKeys[i] = GetKeyValue(gs_pixels[i].rgb, _SortMode);
+        gs_thresholdKeys[i] = GetKeyValue(gs_pixels[i].rgb, _ThresholdMode);
+    }
+
+    GroupMemoryBarrierWithGroupSync();
+
+    // Phase 2: Identify spans — contiguous runs of sortable pixels
+    int currentSpanID = 0;
+    for (int i = 0; i < lineLength; i++)
+    {
+        if (!IsSortable(gs_thresholdKeys[i]))
+        {
+            gs_spanIDs[i] = -1; // Not sortable
+            currentSpanID++;
+        }
+        else
+        {
+            gs_spanIDs[i] = currentSpanID;
+        }
+    }
+
+    GroupMemoryBarrierWithGroupSync();
+
+    // Phase 3: Sort each span
+    int spanStart = -1;
+    int spanID = -1;
+
+    for (int i = 0; i <= lineLength; i++)
+    {
+        int sid = (i < lineLength) ? gs_spanIDs[i] : -1;
+
+        if (sid != spanID || i == lineLength)
+        {
+            // End of previous span — sort it if valid
+            if (spanID >= 0 && spanStart >= 0)
+            {
+                int spanEnd = i;
+                int spanLen = spanEnd - spanStart;
+
+                // Apply max span length cap
+                if (_MaxSpanLength > 0 && spanLen > _MaxSpanLength)
+                {
+                    // Break into sub-spans of max length
+                    for (int s = spanStart; s < spanEnd; s += _MaxSpanLength)
+                    {
+                        int subEnd = min(s + _MaxSpanLength, spanEnd);
+                        BitonicSortSpan(s, subEnd, lineLength);
+                    }
+                }
+                else
+                {
+                    BitonicSortSpan(spanStart, spanEnd, lineLength);
+                }
+            }
+
+            spanStart = i;
+            spanID = sid;
+        }
+    }
+
+    GroupMemoryBarrierWithGroupSync();
+
+    // Phase 4: Write results with strength blending
+    for (int i = 0; i < lineLength; i++)
+    {
+        int2 coord;
+        if (horizontal)
+            coord = int2(i, lineIndex);
+        else
+            coord = int2(lineIndex, i);
+
+        float4 original = _SourceTexture[coord];
+        float4 sorted = gs_pixels[i];
+        _OutputTexture[coord] = lerp(original, sorted, _Strength);
+    }
+}
+
+// --- Kernel: Horizontal sort (one thread group per row) ---
+[numthreads(1, 1, 1)]
+void PixelSortH(uint3 id : SV_DispatchThreadID)
+{
+    int row = id.x;
+    if (row >= _Height) return;
+    ProcessLine(row, _Width, true);
+}
+
+// --- Kernel: Vertical sort (one thread group per column) ---
+[numthreads(1, 1, 1)]
+void PixelSortV(uint3 id : SV_DispatchThreadID)
+{
+    int col = id.x;
+    if (col >= _Width) return;
+    ProcessLine(col, _Height, false);
+}
