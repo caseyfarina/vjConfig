@@ -1,127 +1,67 @@
-# Minis: MIDI Input Extension for Unity Input System
+# VJ Config — Unity 6 VJ System
 
-![gif](https://github.com/user-attachments/assets/fdbfaeed-5f92-46c8-8a0c-58de1083e494)
-![gif](https://github.com/user-attachments/assets/48f86c34-4afe-47a6-ba0d-18e53c9552d6)
+A MIDI-driven VJ system built in Unity 6 (URP) for live visual performance. Controls post-processing effects, camera motion, lighting, and scene management via a Midi Fighter 64 grid controller, with Spout output to MadMapper.
 
-**Minis** is an extension for the Unity [Input System] that adds support for
-MIDI input devices.
+## Features
 
-[Input System]:
-  https://docs.unity3d.com/Packages/com.unity.inputsystem@latest/
+- **MIDI Control**: Full 8x8 grid mapping via Midi Fighter 64 — presets, randomization, and live parameter control through `MidiGridRouter` and `PostFXRouter`
+- **GPU Pixel Sort**: Real compute shader pixel sorting with configurable threshold modes (luminance, hue, saturation, brightness), sort axes, span length control, and ascending/descending order
+- **Chromatic Displacement**: Multi-pass Sobel-gradient chromatic displacement with per-channel angle/amount control, custom color palettes, object masking with dilation/feather, radial falloff, and pre-blur
+- **Depth of Field**: URP DepthOfField volume control with Bokeh and Gaussian modes
+- **Camera System**: Cinemachine-based with orbital drift, handheld noise, figure-8 paths, and zoom pulse extensions
+- **Preset System**: 7 named presets per effect + randomization within configurable bounds, JSON save/recall via `PresetSaveSystem`
+- **Spout Output**: KlakSpout integration for sending frames to MadMapper or other Spout receivers
+- **Debug HUD**: On-screen display of active preset names and effect states
+
+## Architecture
+
+Effects use the **Volume bridge pattern** — each System (`PixelSortSystem`, `ChromaticDisplacementSystem`, `DepthOfFieldSystem`) implements `IPostFXSystem` and programmatically writes to URP `VolumeParameter` values with DOTween transitions. The Volume overrides drive `ScriptableRendererFeature` passes built on the Unity 6 RenderGraph API.
+
+```
+MIDI Input → MidiGridRouter → PostFXRouter → IPostFXSystem.ApplyPreset()
+                                                    ↓
+                                            Volume bridge (DOTween)
+                                                    ↓
+                                          VolumeComponent parameters
+                                                    ↓
+                                    ScriptableRendererFeature + RenderGraph
+```
 
 ## System Requirements
 
-- Unity 2022.3 LTS or later
+- Unity 6 (6000.3+)
+- Universal Render Pipeline (URP 17.x)
+- Windows (Spout output is Windows-only)
 
-Currently, RtMidi for Unity supports the following platform and architecture
-combinations:
+## Dependencies
 
-- Windows: x86_64
-- macOS: Intel and Apple Silicon
-- iOS: arm64
-- Linux: x86_64
-- Android: arm64
-- Web (requires [Web MIDI] support)
+- [DOTween Pro](http://dotween.demigiant.com/) — parameter tweening
+- [KlakSpout](https://github.com/keijiro/KlakSpout) — Spout output to MadMapper
+- [Cinemachine 3](https://docs.unity3d.com/Packages/com.unity.cinemachine@3.1/) — camera system
 
-[Web MIDI]: https://caniuse.com/midi
+## Setup
 
-In addition, there are some platform-specific considerations to keep in mind:
+1. Open in Unity 6 with URP
+2. **URP Renderer Asset**: Add "Pixel Sort" feature (assign `PixelSort.compute`) and "Chromatic Displacement" feature
+3. **Global Volume**: Add "Pixel Sort" and "Chromatic Displacement" overrides, enable all parameter overrides, set strength/amount to 0
+4. **System GameObjects**: Wire the `globalVolume` reference on `PixelSortSystem`, `ChromaticDisplacementSystem`, and `DepthOfFieldSystem`
+5. **Preset Libraries**: Create ScriptableObject assets via `Create > VJSystem > Pixel Sort Preset Library` and `Create > VJSystem > Chromatic Preset Library`
+6. Connect Midi Fighter 64 and enter Play mode
 
-#### Android
+## Project Structure
 
-Minis currently does not support the GameActivity entry point. You must select
-"Activity" as the Application Entry Point in the Player Settings.
-
-There is a known issue with multi-port MIDI devices. keijiro/jp.keijiro.rtmidi#16
-
-#### Linux
-
-The RtMidi backend requires ALSA (`libasound2`) on Linux platforms. If Minis
-does not work, please check that ALSA is installed.
-
-## Installation
-
-You can install the Minis package (`jp.keijiro.minis`) via the "Keijiro" scoped
-registry using the Unity Package Manager. To add the registry to your project,
-follow [these instructions].
-
-[these instructions]:
-  https://gist.github.com/keijiro/f8c7e8ff29bfe63d86b888901b82644c
-
-## Usage
-
-### Input Controls
-
-After installing Minis, MIDI control elements appear under "Other" >
-"MIDI Device" in the Input System. You can also use the "Listen" button to
-detect a specific control input.
-
-![gif](https://i.imgur.com/nFzQM2M.gif)
-
-**NOTE** – The listener only reacts to notes with a velocity higher than 63.
-You may need to press the key firmly to trigger detection.
-
-MIDI notes appear as button controls with names like "Note C4." They support
-velocity and polyphonic aftertouch, with output values normalized between 0.0
-and 1.0.
-
-MIDI CC messages appear as axis controls with names like "Control 10" and
-output values normalized between 0.0 and 1.0.
-
-Pitch Bend and Channel Pressure (Channel Aftertouch) also appear as axis
-controls. Note that Channel Pressure does not affect individual note values.
-
-There are two special controls — the **Any Note Number** axis and the **Any
-Note Velocity** button. These controls reflect the most recently pressed key,
-making them useful for creating behaviors based on monophonic keyboard input.
-
-### MIDI Channels
-
-Minis treats each MIDI channel as a separate input device. Devices are
-dynamically registered when a MIDI message is received on a new channel.
-
-**NOTE** – The Input System cannot detect a device until it receives a message.
-Prompt the user to move a control to activate detection.
-
-When multiple MIDI interfaces are connected, channels across all interfaces are
-handled independently. For example, with two interfaces, you can use up to 32
-input devices (16 channels per interface).
-
-Note that Minis numbers MIDI channels starting from zero, unlike the standard
-MIDI specification, which starts from one. For example, a device using MIDI
-channel 1 will appear as "Channel 0" in Minis.
-
-### MIDI Device Assigner
-
-![inspector](https://i.imgur.com/xHkTuOgm.jpg)
-
-The MIDI Device Assigner is a utility for binding MIDI devices to PlayerInput.
-You can specify a MIDI channel and product name as matching criteria. It
-assigns the matched device to a PlayerInput component on the same GameObject.
-
-## MIDI Event Callbacks
-
-For convenience, Minis provides custom callback events via the `MidiDevice`
-class. The following events are currently available:
-
-- `onWillNoteOn`
-- `onWillNoteOff`
-- `onWillAftertouch`
-- `onWillControlChange`
-- `onWillChannelPressure`
-- `onWillPitchBend`
-
-These events are triggered **before** the control state updates, so you should
-use the event arguments rather than querying the control state. See the
-[`CallbackTest.cs`](/Assets/Scripts/CallbackTest.cs) sample code for usage
-examples.
-
-## Frequently Asked Questions
-
-#### Does it support MIDI out?
-
-No, but the underlying backend (RtMidi) does support MIDI output. You can
-access this functionality directly. See the [RtMidi for Unity] repository for
-sample scripts.
-
-[RtMidi for Unity]: https://github.com/keijiro/jp.keijiro.rtmidi
+```
+Assets/VJSystem/
+  Scripts/
+    PostFX/          # Effect systems, features, passes, volumes
+    Presets/          # Preset libraries, save system, randomization
+    MIDI/             # MIDI input routing
+    Camera/           # Cinemachine extensions
+    Lighting/         # Light control
+    Output/           # Spout output
+    UI/               # Debug HUD
+  Shaders/
+    PixelSort.compute                 # GPU bitonic sort
+    ChromaticDisplacement.shader      # 8-pass displacement pipeline
+    ChromaticDisplacementMask.shader  # Object mask writer
+```
