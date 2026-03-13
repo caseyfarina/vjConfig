@@ -211,7 +211,11 @@ namespace VJSystem
             GUILayout.Space(8);
             DrawContentControls(stage);
             GUILayout.Space(8);
-            DeckIdentity deckId = deckManager.stageA == stage ? DeckIdentity.A : DeckIdentity.B;
+            bool isA = deckManager.stageA == stage;
+            var spawn = postFXRouter != null ? (isA ? postFXRouter.meshSpawnA : postFXRouter.meshSpawnB) : null;
+            DrawMeshSpawnControls(spawn);
+            GUILayout.Space(8);
+            DeckIdentity deckId = isA ? DeckIdentity.A : DeckIdentity.B;
             DrawPostFXControls(deckId, isLive);
         }
 
@@ -280,6 +284,14 @@ namespace VJSystem
             float newSpread = GUILayout.HorizontalSlider(rig.hueSpread, 0f, 100f, GUILayout.Width(200));
             GUILayout.Label($"{newSpread:F0}%", GUILayout.Width(40));
             if (Mathf.Abs(newSpread - rig.hueSpread) > 0.5f) { rig.hueSpread = newSpread; changed = true; }
+            GUILayout.EndHorizontal();
+
+            // Hemisphere Radius
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Hemi Radius:", GUILayout.Width(80));
+            float newRadius = GUILayout.HorizontalSlider(rig.lightRadius, 1f, 30f, GUILayout.Width(200));
+            GUILayout.Label($"{newRadius:F1}m", GUILayout.Width(40));
+            if (Mathf.Abs(newRadius - rig.lightRadius) > 0.05f) { rig.lightRadius = newRadius; changed = true; }
             GUILayout.EndHorizontal();
 
             // Intensity
@@ -655,6 +667,45 @@ namespace VJSystem
                 }
                 GUI.contentColor = Color.white;
             }
+        }
+
+        // ==================== MESH SPAWN CONTROLS ====================
+
+        void DrawMeshSpawnControls(MeshSpawnSystem spawn)
+        {
+            GUILayout.Label(" Mesh Spawn ", _headerStyle);
+
+            if (spawn == null)
+            {
+                GUILayout.Label("  MeshSpawnSystem not assigned.", _smallLabel);
+                return;
+            }
+
+            // Walk
+            SliderRow("Step Size:",    ref spawn.stepMagnitude,   0.1f,  8f,   "F2", "m");
+            SliderRow("Step Variance:",ref spawn.stepVariance,    0f,    4f,   "F2", "m");
+            SliderRow("Spawn Height:", ref spawn.spawnHeight,     0f,    8f,   "F2", "m");
+            SliderRow("Height Range:", ref spawn.spawnHeightRange,0f,    8f,   "F2", "m");
+            SliderRow("Walk Radius:",  ref spawn.walkRadius,      1f,    20f,  "F1", "m");
+
+            // Scale
+            SliderRow("Min Scale:",    ref spawn.minScale,        0.05f, 3f,   "F2", "");
+            SliderRow("Max Scale:",    ref spawn.maxScale,        0.1f,  5f,   "F2", "");
+            SliderRow("Scale In:",     ref spawn.scaleInDuration, 0.05f, 2f,   "F2", "s");
+            SliderRow("Scale Out:",    ref spawn.scaleOutDuration,0.05f, 2f,   "F2", "s");
+
+            // Per-instance rotation range
+            SliderRow("Rot Min:",      ref spawn.rotationSpeedMin, 0f,  90f,  "F1", "°/s");
+            SliderRow("Rot Max:",      ref spawn.rotationSpeedMax, 0f,  180f, "F1", "°/s");
+
+            // Global rotation multiplier (shared across both stages)
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Global Rot×:", GUILayout.Width(80));
+            float newMult = GUILayout.HorizontalSlider(SpawnedMeshObject.globalSpeedMultiplier, 0f, 2f, GUILayout.Width(200));
+            GUILayout.Label($"{newMult:F2}×", GUILayout.Width(50));
+            if (Mathf.Abs(newMult - SpawnedMeshObject.globalSpeedMultiplier) > 0.01f)
+                SpawnedMeshObject.globalSpeedMultiplier = newMult;
+            GUILayout.EndHorizontal();
         }
 
         // ==================== HELPERS ====================

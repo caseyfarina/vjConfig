@@ -411,6 +411,13 @@ namespace VJSystem
                 return;
             }
 
+            // Ch 5 Row 1: global mesh rotation speed multiplier (0 = stopped, 0.5 = normal, 1 = 2×)
+            if (channel == 5 && row == 1)
+            {
+                VJSystem.SpawnedMeshObject.globalSpeedMultiplier = value * 2f;
+                return;
+            }
+
             if (channel != 8) return;
             switch (row)
             {

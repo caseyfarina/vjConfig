@@ -6,6 +6,10 @@ namespace VJSystem
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
     public class SpawnedMeshObject : MonoBehaviour
     {
+        /// <summary>Global multiplier applied to all instances' rotation speed.
+        /// Controlled by MIDI Mix Ch5 Row1 knob and the deck panel slider.</summary>
+        public static float globalSpeedMultiplier = 1f;
+
         public float rotationSpeed = 20f;
         Vector3 _rotAxis;
 
@@ -16,7 +20,7 @@ namespace VJSystem
 
         void Update()
         {
-            transform.Rotate(_rotAxis, rotationSpeed * Time.deltaTime, Space.World);
+            transform.Rotate(_rotAxis, rotationSpeed * globalSpeedMultiplier * Time.deltaTime, Space.World);
         }
 
         /// <summary>Animate to new position (used by Scramble).</summary>
