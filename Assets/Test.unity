@@ -779,10 +779,8 @@ MonoBehaviour:
   hue: 62
   hueSpread: 31.5
   lightRadius: 5
-  lightHeight: 3
   lightRange: 15
   lightIntensity: 0
-  shadowCasters: 2
 --- !u!1 &344032159
 GameObject:
   m_ObjectHideFlags: 0
@@ -2006,10 +2004,8 @@ MonoBehaviour:
   hue: 0
   hueSpread: 60
   lightRadius: 5
-  lightHeight: 3
   lightRange: 15
   lightIntensity: 0
-  shadowCasters: 2
 --- !u!1 &631531842
 GameObject:
   m_ObjectHideFlags: 0
@@ -3724,6 +3720,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: HealthBox
       objectReference: {fileID: 0}
+    - target: {fileID: 5166277842241438532, guid: 1e2687e60cb724a4385edc176a335b8b,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -3832,6 +3833,86 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VJSystem.RandomizationSystem
   postFXRouter: {fileID: 433147257}
+--- !u!1 &887826825
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 887826826}
+  - component: {fileID: 887826827}
+  m_Layer: 0
+  m_Name: MeshSpawn_A
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &887826826
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 887826825}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1651888308}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &887826827
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 887826825}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 51209fe2da0d2574ba2fb7d23bbb3799, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VJSystem.MeshSpawnSystem
+  stageOrigin: {x: 0, y: 0, z: 0}
+  meshes:
+  - {fileID: -5495902117074765545, guid: bfae609241cf3b74ebc15c598ce393c5, type: 3}
+  - {fileID: -8314571099243211324, guid: bfae609241cf3b74ebc15c598ce393c5, type: 3}
+  - {fileID: 6398016057827673471, guid: bfae609241cf3b74ebc15c598ce393c5, type: 3}
+  - {fileID: 293443957565892765, guid: bfae609241cf3b74ebc15c598ce393c5, type: 3}
+  - {fileID: -8813949941042029940, guid: 5d2ae2bbc204c884790b3a64b741cd5c, type: 3}
+  - {fileID: 5317313116092939607, guid: 77046c3aced7b6c49baa5f6d02911f8c, type: 3}
+  - {fileID: 2386806150874699694, guid: 488bbeb392df62b4ca9731e2acafdd26, type: 3}
+  - {fileID: -2287106531946544653, guid: 51711d7f7c27a1a4f91eaa6274bd9da4, type: 3}
+  - {fileID: -275610123854277780, guid: bf798eef052255443b6ad15e0d5d8704, type: 3}
+  - {fileID: 547080765781418645, guid: 3ade3b2b331ac7a4995e2298ff79a3cf, type: 3}
+  - {fileID: 6701247845058259129, guid: 9a0f2746e5a452f40b1167f18f39061a, type: 3}
+  - {fileID: -5130519970897034471, guid: 191ae33ed0467304e892026600a402c9, type: 3}
+  materials:
+  - {fileID: 2100000, guid: 3a641c2ca97044d4f99301fbbf178eca, type: 2}
+  - {fileID: 2100000, guid: 764321a77326b6540809ab1edc596276, type: 2}
+  - {fileID: 2100000, guid: 8d140417c09d436499e35d77714b1bf2, type: 2}
+  - {fileID: 2100000, guid: 18a89c4ca19876842a18838676c817f2, type: 2}
+  - {fileID: 2100000, guid: 162cb94330d49af4294d1700e8ac2122, type: 2}
+  - {fileID: 2100000, guid: 11baac5fb45a283468106bca48add3dd, type: 2}
+  - {fileID: 2100000, guid: 5ff4797ccbb4bc642aa3096f010125fd, type: 2}
+  - {fileID: 2100000, guid: 9d39bdec09df85b4bbf611e857976ece, type: 2}
+  - {fileID: 2100000, guid: 996079a596f02d641b4434de6190371e, type: 2}
+  - {fileID: 2100000, guid: e6ad7af1bc759874899f313a92667cd5, type: 2}
+  stepMagnitude: 1.5
+  stepVariance: 0.5
+  spawnHeight: 0.5
+  spawnHeightRange: 2.5
+  walkRadius: 5
+  minScale: 0.3
+  maxScale: 1.5
+  scaleInDuration: 0.3
+  scaleOutDuration: 0.4
+  rotationSpeedMin: 5
+  rotationSpeedMax: 40
 --- !u!1 &895204817
 GameObject:
   m_ObjectHideFlags: 0
@@ -5728,6 +5809,86 @@ RenderTexture:
   m_Dimension: 2
   m_VolumeDepth: 1
   m_ShadowSamplingMode: 2
+--- !u!1 &1395733860
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1395733861}
+  - component: {fileID: 1395733862}
+  m_Layer: 0
+  m_Name: MeshSpawn_B
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1395733861
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1395733860}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1651888308}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1395733862
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1395733860}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 51209fe2da0d2574ba2fb7d23bbb3799, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VJSystem.MeshSpawnSystem
+  stageOrigin: {x: 5000, y: 0, z: 0}
+  meshes:
+  - {fileID: -5495902117074765545, guid: bfae609241cf3b74ebc15c598ce393c5, type: 3}
+  - {fileID: -8314571099243211324, guid: bfae609241cf3b74ebc15c598ce393c5, type: 3}
+  - {fileID: 6398016057827673471, guid: bfae609241cf3b74ebc15c598ce393c5, type: 3}
+  - {fileID: 293443957565892765, guid: bfae609241cf3b74ebc15c598ce393c5, type: 3}
+  - {fileID: -8813949941042029940, guid: 5d2ae2bbc204c884790b3a64b741cd5c, type: 3}
+  - {fileID: 5317313116092939607, guid: 77046c3aced7b6c49baa5f6d02911f8c, type: 3}
+  - {fileID: 2386806150874699694, guid: 488bbeb392df62b4ca9731e2acafdd26, type: 3}
+  - {fileID: -2287106531946544653, guid: 51711d7f7c27a1a4f91eaa6274bd9da4, type: 3}
+  - {fileID: -275610123854277780, guid: bf798eef052255443b6ad15e0d5d8704, type: 3}
+  - {fileID: 547080765781418645, guid: 3ade3b2b331ac7a4995e2298ff79a3cf, type: 3}
+  - {fileID: 6701247845058259129, guid: 9a0f2746e5a452f40b1167f18f39061a, type: 3}
+  - {fileID: -5130519970897034471, guid: 191ae33ed0467304e892026600a402c9, type: 3}
+  materials:
+  - {fileID: 2100000, guid: 3a641c2ca97044d4f99301fbbf178eca, type: 2}
+  - {fileID: 2100000, guid: 764321a77326b6540809ab1edc596276, type: 2}
+  - {fileID: 2100000, guid: 8d140417c09d436499e35d77714b1bf2, type: 2}
+  - {fileID: 2100000, guid: 18a89c4ca19876842a18838676c817f2, type: 2}
+  - {fileID: 2100000, guid: 162cb94330d49af4294d1700e8ac2122, type: 2}
+  - {fileID: 2100000, guid: 11baac5fb45a283468106bca48add3dd, type: 2}
+  - {fileID: 2100000, guid: 5ff4797ccbb4bc642aa3096f010125fd, type: 2}
+  - {fileID: 2100000, guid: 9d39bdec09df85b4bbf611e857976ece, type: 2}
+  - {fileID: 2100000, guid: 996079a596f02d641b4434de6190371e, type: 2}
+  - {fileID: 2100000, guid: e6ad7af1bc759874899f313a92667cd5, type: 2}
+  stepMagnitude: 1.5
+  stepVariance: 0.5
+  spawnHeight: 0.5
+  spawnHeightRange: 2.5
+  walkRadius: 5
+  minScale: 0.3
+  maxScale: 1.5
+  scaleInDuration: 0.3
+  scaleOutDuration: 0.4
+  rotationSpeedMin: 5
+  rotationSpeedMax: 40
 --- !u!1 &1432767718
 GameObject:
   m_ObjectHideFlags: 0
@@ -5996,7 +6157,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1500469563
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6776,7 +6937,9 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 887826826}
+  - {fileID: 1395733861}
   m_Father: {fileID: 935321506}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1651888309
@@ -6815,6 +6978,8 @@ MonoBehaviour:
   directionalLightB: {fileID: 1633528933}
   lightRigA: {fileID: 628784515}
   lightRigB: {fileID: 238113261}
+  meshSpawnA: {fileID: 887826827}
+  meshSpawnB: {fileID: 1395733862}
 --- !u!21 &1684515110
 Material:
   serializedVersion: 8

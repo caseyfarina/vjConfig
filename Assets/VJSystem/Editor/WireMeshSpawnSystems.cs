@@ -82,8 +82,14 @@ public static class WireMeshSpawnSystems
 
         EditorUtility.SetDirty(router);
 
+        // Save the scene so references persist across play mode
+        UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(
+            UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene());
+        UnityEditor.SceneManagement.EditorSceneManager.SaveScene(
+            UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene());
+
         Debug.Log($"[WireMeshSpawnSystems] Done. " +
-                  $"{meshes.Count} meshes, {materials.Count} materials assigned to MeshSpawn_A and MeshSpawn_B.");
+                  $"{meshes.Count} meshes, {materials.Count} materials assigned to MeshSpawn_A and MeshSpawn_B. Scene saved.");
     }
 
     static VJSystem.MeshSpawnSystem CreateOrFindSystem(
