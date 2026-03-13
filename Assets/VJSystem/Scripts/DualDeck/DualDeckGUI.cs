@@ -714,6 +714,21 @@ namespace VJSystem
             if (Mathf.Abs(newMult - SpawnedMeshObject.globalSpeedMultiplier) > 0.01f)
                 SpawnedMeshObject.globalSpeedMultiplier = newMult;
             GUILayout.EndHorizontal();
+
+            // Global camera zoom (shared across both stages)
+            var rigA = deckManager?.stageA?.cameraRig;
+            var rigB = deckManager?.stageB?.cameraRig;
+            float curFOV = rigA != null ? rigA.fieldOfView : 60f;
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Cam Zoom:", GUILayout.Width(80));
+            float newFOV = GUILayout.HorizontalSlider(curFOV, 15f, 90f, GUILayout.Width(200));
+            GUILayout.Label($"{newFOV:F0}°", GUILayout.Width(40));
+            if (Mathf.Abs(newFOV - curFOV) > 0.5f)
+            {
+                rigA?.SetFOV(newFOV);
+                rigB?.SetFOV(newFOV);
+            }
+            GUILayout.EndHorizontal();
         }
 
         // ==================== HELPERS ====================

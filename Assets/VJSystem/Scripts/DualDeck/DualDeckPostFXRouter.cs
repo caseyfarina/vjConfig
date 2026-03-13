@@ -419,6 +419,15 @@ namespace VJSystem
                 return;
             }
 
+            // Ch 5 Row 2: global camera zoom (FOV 15°–90°)
+            if (channel == 5 && row == 2)
+            {
+                float fov = Mathf.Lerp(15f, 90f, value);
+                rigA?.SetFOV(fov);
+                rigB?.SetFOV(fov);
+                return;
+            }
+
             if (channel != 8) return;
             switch (row)
             {

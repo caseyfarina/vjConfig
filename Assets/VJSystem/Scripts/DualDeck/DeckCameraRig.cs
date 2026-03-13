@@ -13,6 +13,7 @@ namespace VJSystem
         [Header("Shared Settings")]
         public float perimeterRadius = 10f;
         public float cameraHeight = 2f;
+        [Range(15f, 90f)] public float fieldOfView = 60f;
         [Range(1f, 45f)] public float orbitSpeed = 10f;
         public float orbitRadius = 8f;
         public float orbitHeight = 3f;
@@ -31,6 +32,13 @@ namespace VJSystem
         float[] _pushDirectionAngle = new float[2];
         RenderTexture[] _rts = new RenderTexture[2];
 
+        public void SetFOV(float fov)
+        {
+            fieldOfView = fov;
+            if (cam1 != null) cam1.fieldOfView = fov;
+            if (cam2 != null) cam2.fieldOfView = fov;
+        }
+
         public CameraBehavior GetBehavior(int camIndex) => _behaviors[Mathf.Clamp(camIndex, 0, 1)];
         public RenderTexture GetRT(int camIndex) => _rts[Mathf.Clamp(camIndex, 0, 1)];
 
@@ -44,7 +52,7 @@ namespace VJSystem
                 _rts[i].name = $"RT_{(stageOrigin.x < 1000 ? "A" : "B")}_Cam{i + 1}";
                 _rts[i].Create();
                 var cam = GetCam(i);
-                if (cam != null) cam.targetTexture = _rts[i];
+                if (cam != null) { cam.targetTexture = _rts[i]; cam.fieldOfView = fieldOfView; }
             }
 
             SetBehavior(0, CameraBehavior.Still);

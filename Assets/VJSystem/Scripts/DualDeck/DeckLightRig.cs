@@ -57,7 +57,7 @@ namespace VJSystem
                 fl.color           = Color.white;
                 fl.range           = flashRange;
                 fl.intensity       = flashIntensity;
-                fl.shadows         = LightShadows.None;
+                fl.shadows         = LightShadows.Soft;
                 fl.bounceIntensity = 0f;
                 go.SetActive(false);
                 _flashLights.Add(fl);
