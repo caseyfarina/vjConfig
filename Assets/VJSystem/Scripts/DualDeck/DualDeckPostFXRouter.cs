@@ -604,8 +604,8 @@ namespace VJSystem
                 }
                 else
                 {
-                    meshSpawnA?.SpawnInGroup(groupIndex);
-                    meshSpawnB?.SpawnInGroup(groupIndex);
+                    meshSpawnA?.SpawnInGroup(groupIndex, btn.col);
+                    meshSpawnB?.SpawnInGroup(groupIndex, btn.col);
                 }
             }
         }

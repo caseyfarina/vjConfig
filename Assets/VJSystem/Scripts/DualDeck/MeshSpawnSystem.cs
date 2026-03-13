@@ -59,6 +59,10 @@ namespace VJSystem
         Vector3   _cursor;
         Transform _spawnRoot;
 
+        // 4 groups × 7 cols = 28 button slots, each assigned a fixed material.
+        // Reassigned randomly on Scramble().
+        Material[] _buttonMaterials;
+
         void Awake()
         {
             _cursor = stageOrigin;
@@ -66,6 +70,16 @@ namespace VJSystem
             var rootGO = new GameObject("SpawnedMeshes");
             _spawnRoot = rootGO.transform;
             _spawnRoot.SetParent(transform);
+
+            AssignButtonMaterials();
+        }
+
+        void AssignButtonMaterials()
+        {
+            _buttonMaterials = new Material[28]; // 4 groups × 7 cols
+            if (materials == null || materials.Length == 0) return;
+            for (int i = 0; i < 28; i++)
+                _buttonMaterials[i] = materials[Random.Range(0, materials.Length)];
         }
 
         // Remove null entries caused by external destroy
@@ -78,8 +92,9 @@ namespace VJSystem
 
         // ------------------------------------------------------------------ //
 
-        /// <summary>Spawn one mesh at current cursor position, then advance cursor.</summary>
-        public void SpawnInGroup(int groupIndex)
+        /// <summary>Spawn one mesh at current cursor position, then advance cursor.
+        /// buttonCol 1-7 selects the fixed material assigned to that button slot.</summary>
+        public void SpawnInGroup(int groupIndex, int buttonCol)
         {
             if (groupIndex < 0 || groupIndex > 3) return;
             if (meshes == null || meshes.Length == 0) return;
@@ -113,8 +128,13 @@ namespace VJSystem
             var mf = go.AddComponent<MeshFilter>();
             mf.sharedMesh = meshes[Random.Range(0, meshes.Length)];
 
+            int slot = groupIndex * 7 + Mathf.Clamp(buttonCol - 1, 0, 6);
+            var mat  = (_buttonMaterials != null && _buttonMaterials[slot] != null)
+                       ? _buttonMaterials[slot]
+                       : materials[Random.Range(0, materials.Length)];
+
             var mr = go.AddComponent<MeshRenderer>();
-            mr.sharedMaterial = materials[Random.Range(0, materials.Length)];
+            mr.sharedMaterial = mat;
 
             var smo = go.AddComponent<SpawnedMeshObject>();
             smo.rotationSpeed = Random.Range(rotationSpeedMin, rotationSpeedMax);
@@ -142,9 +162,11 @@ namespace VJSystem
             list.Clear();
         }
 
-        /// <summary>Animate all spawned objects to new random positions.</summary>
+        /// <summary>Animate all spawned objects to new random positions and reassign button materials.</summary>
         public void Scramble()
         {
+            AssignButtonMaterials();
+
             for (int g = 0; g < _groups.Length; g++)
             {
                 PruneGroup(g);
