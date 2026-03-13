@@ -5778,7 +5778,7 @@ MonoBehaviour:
   cameraRig: {fileID: 836836369}
   lightRig: {fileID: 238113261}
   contentRoot: {fileID: 895204818}
-  autoSpawn: 1
+  autoSpawn: 0
 --- !u!1 &1465441433
 GameObject:
   m_ObjectHideFlags: 0
@@ -7524,7 +7524,7 @@ MonoBehaviour:
   cameraRig: {fileID: 939641196}
   lightRig: {fileID: 628784515}
   contentRoot: {fileID: 1323380127}
-  autoSpawn: 1
+  autoSpawn: 0
 --- !u!1 &1833699020
 GameObject:
   m_ObjectHideFlags: 0
