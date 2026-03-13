@@ -15,7 +15,7 @@ namespace VJSystem
         public float lightRadius = 5f;
         public float lightRange = 15f;
         public float lightIntensity = 0f;
-        [Range(0f, 1f)] public float lightSaturation = 0f;  // 0 = white, 1 = full hue colour
+        [Range(0f, 1f)] public float lightSaturation = 0.8f; // used in colour mode; white mode overrides this
 
         [Header("Flash Lights (MF64 Row 3, Cols 1-4 — hold to flash)")]
         public float flashIntensity = 80f;

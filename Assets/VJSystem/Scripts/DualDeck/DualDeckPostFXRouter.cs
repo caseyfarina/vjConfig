@@ -196,6 +196,10 @@ namespace VJSystem
             InitDeckFX(volumeA, ref _fxA);
             InitDeckFX(volumeB, ref _fxB);
             InitMasterFade();
+
+            // Ensure lights start white
+            lightRigA?.SetAllWhite();
+            lightRigB?.SetAllWhite();
         }
 
         void InitMasterFade()
@@ -559,7 +563,7 @@ namespace VJSystem
         // ------------------------------------------------------------------ //
         // MIDI Mix — Mute (toggle white / restore colour)
 
-        bool _lightsWhiteMode = false;
+        bool _lightsWhiteMode = true; // start in white mode; first toggle switches to colour
 
         void HandleMute(int channel, bool isNoteOn)
         {
