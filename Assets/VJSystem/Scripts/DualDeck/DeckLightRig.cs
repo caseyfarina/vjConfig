@@ -1,0 +1,104 @@
+using UnityEngine;
+using System.Collections.Generic;
+
+namespace VJSystem
+{
+    public class DeckLightRig : MonoBehaviour
+    {
+        public Vector3 stageOrigin;
+
+        [Range(0, 50)] public int activeLightCount = 0;
+        [Range(0f, 360f)] public float hue = 0f;
+        [Range(0f, 100f)] public float hueSpread = 50f;
+
+        [Header("Light Properties")]
+        public float lightRadius = 5f;
+        public float lightRange = 15f;
+        public float lightIntensity = 0f;
+
+        const int MAX_LIGHTS = 50;
+        readonly List<Light> _lights = new List<Light>();
+        readonly Vector3[] _positions = new Vector3[MAX_LIGHTS];
+        Transform _container;
+
+        void Start()
+        {
+            _container = new GameObject("PointLights").transform;
+            _container.SetParent(transform);
+            _container.position = stageOrigin;
+
+            for (int i = 0; i < MAX_LIGHTS; i++)
+            {
+                var go = new GameObject($"PtLight_{i}");
+                go.transform.SetParent(_container);
+                var light = go.AddComponent<Light>();
+                light.type = LightType.Point;
+                light.range = lightRange;
+                light.intensity = lightIntensity;
+                light.shadows = LightShadows.None;
+                light.bounceIntensity = 0f;
+                go.SetActive(false);
+                _lights.Add(light);
+            }
+
+            RandomizePositions(MAX_LIGHTS);
+            UpdateLights();
+        }
+
+        void OnValidate() => UpdateLights();
+
+        void RandomizePositions(int count)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                float cosTheta = Random.Range(0.35f, 1.0f); // keep lights elevated, avoid near-equator
+                float sinTheta = Mathf.Sqrt(1f - cosTheta * cosTheta);
+                float phi = Random.value * Mathf.PI * 2f;
+                _positions[i] = stageOrigin + Vector3.up * 5f + new Vector3(
+                    sinTheta * Mathf.Cos(phi),
+                    cosTheta,
+                    sinTheta * Mathf.Sin(phi)
+                ) * lightRadius;
+            }
+        }
+
+        public void RandomizeAndUpdate()
+        {
+            int count = Mathf.Clamp(activeLightCount, 0, MAX_LIGHTS);
+            RandomizePositions(count);
+            UpdateLights();
+        }
+
+        public void SetAllWhite()
+        {
+            foreach (var light in _lights)
+                if (light != null && light.gameObject.activeSelf)
+                    light.color = Color.white;
+        }
+
+        public void UpdateLights()
+        {
+            if (_lights.Count == 0) return;
+
+            int count = Mathf.Clamp(activeLightCount, 0, MAX_LIGHTS);
+
+            for (int i = 0; i < MAX_LIGHTS; i++)
+            {
+                bool active = i < count;
+                _lights[i].gameObject.SetActive(active);
+
+                if (!active) continue;
+
+                _lights[i].transform.position = _positions[i];
+
+                float hueOffset = hueSpread / 100f * ((float)i / Mathf.Max(1, count) - 0.5f);
+                float h = (hue / 360f + hueOffset) % 1f;
+                if (h < 0) h += 1f;
+                _lights[i].color = Color.HSVToRGB(h, 0.8f, 1f);
+                _lights[i].intensity = lightIntensity;
+                _lights[i].range = lightRange;
+                _lights[i].shadows = LightShadows.Soft;
+            }
+        }
+    }
+}

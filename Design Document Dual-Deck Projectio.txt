@@ -1,0 +1,145 @@
+Design Document: Dual-Deck Projection Mapping VJ System
+Target Engine: Unity 6.3 (LTS)
+Hardware Profile: High-End (Intel i9 / NVIDIA RTX 3090)
+Pipeline: Universal Render Pipeline (URP) - Forward+
+
+1. Executive Summary
+This application is a professional VJ tool designed for high-performance projection mapping. It utilizes a "Dual-Deck" workflow similar to a DJ turntable setup, allowing a performer to curate and preview a 3D "Stage" in a standby state before switching it to the live outputs via a hard cut. The system leverages the 24GB VRAM of the RTX 3090 to maintain two high-fidelity 3D environments simultaneously within a single Unity scene. The standby deck functions as an interactive editing workspace, not merely a low-res preview.
+
+2. System Architecture & Display Routing
+2.1 Display Configuration
+The application utilizes Unity's Multi-Display API to manage three distinct outputs:
+
+Display 1 (Control GUI): Fullscreen interface for the performer. Contains all control panels.
+Display 2 (Projector 1): HD (1920x1080) mapped output of the live deck's Virtual Camera 1.
+Display 3 (Projector 2): HD (1920x1080) mapped output of the live deck's Virtual Camera 2.
+
+2.2 Scene Spatial Logic
+To maximize performance and eliminate light/physics bleed, two stages are placed in a single scene at distant coordinates:
+
+Stage Area A: Centered at (0, 0, 0).
+Stage Area B: Centered at (5000, 0, 0).
+
+2.3 Layer Allocation Plan
+Unity provides 32 layers (Layers 0–7 are reserved). This system uses the following allocation:
+Layer IndexNamePurpose8StageA_GeometryAll meshes/prefabs on Stage A9StageA_LightsAll lights on Stage A10StageA_VFXVFX Graph objects on Stage A11StageA_CamerasCamera rigs for Stage A (excluded from opposing stage cameras)16StageB_GeometryAll meshes/prefabs on Stage B17StageB_LightsAll lights on Stage B18StageB_VFXVFX Graph objects on Stage B19StageB_CamerasCamera rigs for Stage B24GUIControl panel UI elements
+Stage A cameras set their culling masks to include only layers 8–11. Stage B cameras include only layers 16–19. GUI camera includes only layer 24.
+Additionally, URP Forward+ Rendering Layer Masks (separate from GameObject layers, up to 24 available) must be configured so that Forward+ light culling respects stage boundaries. Each stage's lights should be assigned to a distinct URP Rendering Layer, and each stage's renderers should be set to receive light only from their corresponding Rendering Layer. This prevents Forward+ from evaluating Stage B lights against Stage A geometry and vice versa.
+
+3. Camera Topology
+Each stage has two independent cameras (Cam 1 and Cam 2), for a total of four 3D cameras in the scene. These map to the two projector outputs:
+
+Stage A Cam 1 → feeds Display 2 when Stage A is live
+Stage A Cam 2 → feeds Display 3 when Stage A is live
+Stage B Cam 1 → feeds Display 2 when Stage B is live
+Stage B Cam 2 → feeds Display 3 when Stage B is live
+
+All four cameras render to RenderTexture assets rather than directly to displays. The display output is handled by fullscreen quads that sample the appropriate RenderTexture (see Section 5.1 for the warp/crop pipeline). The Take system swaps which RenderTextures feed the output quads.
+A fifth camera (orthographic, layer 24 only) renders the GUI to Display 1.
+
+4. Interface Design (The Three Panels)
+The GUI on Display 1 is divided into three functional panels, switchable via tabs or arranged across a widescreen layout.
+4.1 Panel 1: Master Mapping & Output
+
+Mapping Canvas: 2D workspace representing Display 2 and 3. Each output is shown as a quad overlay.
+Corner Pinning: Four draggable handles per output. Implementation uses a GPU-side homography shader applied to the fullscreen output quad. The shader computes a 3x3 homography matrix from the four corner positions and applies the warp in a single pass. Corner coordinates are stored as Vector2[4] per output.
+Cropping: Four edge sliders (Top, Bottom, Left, Right) per output. Cropping is applied before the homography warp by adjusting UV coordinates on the source RenderTexture. This means the cropped region is what gets warped to the corner-pinned shape, which is the correct behavior for projection mapping onto non-rectangular surfaces.
+Master Switcher (The Take): A single button that performs a hard cut. No crossfade. Implementation sequence:
+
+Set the standby deck's UniversalRenderPipelineAsset reference to the full-quality asset.
+Wait one rendered frame (yield return new WaitForEndOfFrame()).
+Swap the RenderTexture assignments on the Display 2 and Display 3 output quads.
+Set the now-standby deck's pipeline asset to the edit-quality asset.
+Update the GUI to reflect the new live/standby state.
+
+
+Save/Load: Mapping coordinates (corner pin Vector2[4] arrays, crop values, per-output) serialized to a local JSON config file using JsonUtility.
+
+4.2 Panels 2 & 3: Deck A & Deck B Control
+Identical control suites. When a deck is live, its panel shows status-only information (current prefab name, light count, camera behaviors, theme color) as text/UI — no rendered preview. The performer sees the live output on the physical projectors. When a deck is on standby, its panel becomes the interactive edit workspace.
+4.2.1 Edit Workspace (Standby Deck Only)
+
+Preview Viewport: Renders the standby deck's Cam 1 output at 720p into a UI RawImage. Supports click-to-select via raycasting: mouse position on the RawImage is converted to a viewport ray through the standby Cam 1, and Physics.Raycast against the standby stage layers identifies the selected object.
+Gizmo Overlay: When an object is selected, a lightweight gizmo system renders translation/rotation handles as an overlay on the preview. This is a custom UI-space gizmo (not Unity's editor gizmos, which are unavailable in builds).
+Property Inspector: A sub-panel that exposes transform, material tint, and VFX Graph exposed properties for the currently selected object.
+
+4.2.2 Content & Environment Controls
+
+Prefab Dropdown: Select from a library of 3D assets to instantiate on the stage. Prefabs must conform to the material standardization requirements in Section 6.2.
+VFX System: Master On/Off toggle and preset selector for VFX Graph assets assigned to the stage.
+Lighting Engine (Forward+):
+
+Point Light Slider: Controls active light count (0 to 50) around the stage perimeter.
+Color Picker: Sets the base theme color (HSV).
+Random Hue Spread: Slider (0–100%) controlling hue offset range distributed across active lights.
+
+
+
+4.2.3 Camera Behavior Array
+Each stage's two cameras (Cam 1 and Cam 2) have independently selectable behaviors:
+
+Still (Perimeter): Snaps to a random point on a configurable-radius circle (default 10m) centered on the stage origin, at a configurable height (default 2m), looking at stage center (0, 1, 0) relative to stage origin. Triggering "Still" again randomizes to a new position.
+Orbit: Continuous rotation around the stage Y-axis at a configurable radius (default 8m) and height (default 3m). Speed is adjustable via slider (range: 1°/sec to 45°/sec, default 10°/sec). Path is circular (not elliptical) to keep implementation simple.
+Push: Linear dolly along the camera's forward vector. Start distance and end distance are configurable (defaults: 12m to 3m from stage center). Easing uses SmoothStep. Auto-loops with a configurable pause at each end (default 0.5s).
+
+All behaviors use Cinemachine virtual cameras where possible, with the behavior selection swapping the active virtual camera via priority.
+
+5. Technical Implementation
+5.1 Warp & Crop Output Pipeline
+Each projector output (Display 2, Display 3) is driven by a fullscreen quad rendered by a dedicated output camera. The quad's material uses a custom shader with the following inputs:
+
+_MainTex: The source RenderTexture from the active deck's camera.
+_CropRect: A Vector4 (left, bottom, right, top) defining the UV crop region, applied before warp.
+_HomographyMatrix: A Matrix4x4 computed from the four corner pin positions. The C# side computes the 3x3 homography from source corners (0,0), (1,0), (1,1), (0,1) to the user-defined destination corners using a standard DLT (Direct Linear Transform) solve, then passes it as a Matrix4x4 with the unused elements zeroed.
+
+The shader samples _MainTex at the inverse-homography-transformed UV, discarding fragments outside the [0,1] range.
+5.2 Render Quality Tiers
+Two UniversalRenderPipelineAsset instances are configured:
+ParameterLive AssetEdit AssetRender Scale1.0 (native 1080p)0.67 (~720p)Target FPS6030Shadow Resolution2048512Shadow Cascades41Post-ProcessingFull (Bloom, Color Grading, Vignette)OffSSAOOnOffAdditional Lights Per Object5050 (needed for edit accuracy)
+The Take sequence (Section 4.1) swaps which asset is assigned to each deck's cameras via UniversalAdditionalCameraData.SetRenderer() and adjusting the RenderTexture resolution at runtime.
+The edit deck renders at 30fps rather than 15fps. The GPU cost difference between 15 and 30fps at 720p is negligible on a 3090, and 15fps makes interactive editing (dragging objects, adjusting lights) feel unacceptably laggy during a live performance.
+5.3 GPU Resident Drawer Requirements
+To leverage Unity 6.3's GPU Resident Drawer for draw call batching, all prefabs in the content library must conform to these requirements:
+
+No per-object MaterialPropertyBlock usage. Per-instance color/parameter variation must be achieved via material instances or shader graph exposed properties.
+All shaders must support the SRP Batcher (use UnityPerMaterial CBUFFER).
+Meshes should use GPU instancing-compatible vertex layouts.
+Materials that break batching (custom vertex streams, non-standard shader passes) must be documented in the prefab library manifest so the performer knows their GPU cost.
+
+5.4 Forward+ Light Count
+URP Forward+ removes the per-object light limit of standard Forward rendering. The 50-light maximum per stage is a design budget, not a technical ceiling. At 1080p with a 3090, 50 point lights with no shadows on most of them (only the nearest 2–4 cast shadows) should sit well within the 12ms GPU frame time budget for the live deck.
+
+6. Performance Budgets
+6.1 Frame Time Targets
+ComponentBudgetLive Deck GPU (total)≤ 12msLive Deck CPU (total)≤ 8msEdit Deck GPU (total)≤ 6msWarp/Crop Shader (per output)≤ 0.3msGUI Rendering≤ 2msTotal GPU frame≤ 16.6ms (60fps)
+6.2 Prefab Library Standards
+Every prefab in the content library must include a metadata component (VJPrefabManifest) with:
+
+Triangle count
+Material count and SRP Batcher compatibility flag
+Expected GPU time at default LOD (profiled on target hardware)
+Whether it breaks GPU Resident Drawer batching
+
+
+7. External Integration
+7.1 MIDI Control Surface Contract
+The existing MIDI integration package routes CC and Note messages to the VJ system via a defined interface. The system exposes the following bindable parameters:
+FunctionDefault BindingValue RangeTake (Hard Cut)Note On (any assigned)TriggerDeck A/B Light CountCC0–127 → mapped to 0–50Deck A/B HueCC0–127 → mapped to 0°–360°Deck A/B Hue SpreadCC0–127 → mapped to 0%–100%Deck A/B Cam 1 BehaviorNote On (3 notes)Still / Orbit / PushDeck A/B Cam 2 BehaviorNote On (3 notes)Still / Orbit / PushDeck A/B Cam Orbit SpeedCC0–127 → mapped to 1°–45°/secDeck A/B Prefab SelectCC or Program ChangeIndex into prefab libraryDeck A/B VFX ToggleNote OnOn/Off
+MIDI bindings are stored in the same JSON config as the mapping coordinates and are user-remappable at runtime via Panel 1.
+7.2 Projection Mapping Package Interface
+The existing mapping package is treated as a dependency with a defined contract:
+
+Input: The core system provides one RenderTexture per projector output (post camera render, pre warp).
+Output: The mapping package applies the homography warp and crop, then writes to the final display surface.
+If the existing package already handles corner pinning and cropping, Section 5.1 describes the expected behavior contract rather than a reimplementation. The package must expose: corner positions (Vector2[4] per output), crop rect (Vector4 per output), and serialization hooks for the JSON save/load system.
+
+
+8. Error Recovery & Graceful Degradation
+FailureResponsePrefab fails to loadLog warning to GUI console. Stage retains previous content. Do not interrupt live output.Display disconnectsDetect via Display.displays count check each frame. Show warning banner on GUI. Live output to remaining display continues.VFX Graph error/crashCatch exception, disable VFX system on that stage, log to GUI console. Stage continues without VFX.Frame time exceeds budgetIf live deck exceeds 16ms for 30+ consecutive frames, auto-reduce shadow quality one tier and log warning.MIDI device disconnectsShow warning on GUI. All parameters retain last-set values. Reconnection is automatic on device re-detection.
+
+9. Future Considerations (Not In Scope)
+These features are explicitly deferred but architecturally accounted for:
+
+Audio Reactivity: Spectrum analysis via AudioSource.GetSpectrumData or external OSC input feeding into VFX Graph and light parameters. The MIDI CC parameter binding system (Section 7.1) is designed to be extended to accept OSC float streams as an additional input source.
+Crossfade Transitions: Would require a "wake" signal to ramp the standby deck to full quality 2–3 seconds before the take, temporarily running both decks at full resolution. The dual-asset architecture supports this but it is not implemented for v1.
+NDI/Spout Output: Network video output for LED walls or remote displays. Would tap the same RenderTextures that feed the warp pipeline.

@@ -1,0 +1,21 @@
+{
+  "name": "com.projectionmapper",
+  "version": "1.0.0",
+  "displayName": "Projection Mapper",
+  "description": "Lightweight projection mapping package for Unity URP. Multi-surface corner-pin warping with perspective-correct homography, configurable per-display quad outputs, runtime GUI, debug view, and shader-based anti-aliasing for extreme warps.",
+  "unity": "2021.3",
+  "unityRelease": "0f1",
+  "keywords": [
+    "projection mapping",
+    "corner pin",
+    "homography",
+    "spout",
+    "warp"
+  ],
+  "author": {
+    "name": "ProjectionMapper"
+  },
+  "dependencies": {
+    "com.unity.render-pipelines.universal": "12.0.0"
+  }
+}
