@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -76,6 +74,10 @@ namespace VJSystem
         public DeckLightRig lightRigA;
         public DeckLightRig lightRigB;
 
+        [Header("Mesh Spawn (MF64 Row4=Control, Rows5-8=Groups A-D)")]
+        public MeshSpawnSystem meshSpawnA;
+        public MeshSpawnSystem meshSpawnB;
+
         // ------------------------------------------------------------------ //
         // Per-deck cached volume components
 
@@ -105,14 +107,6 @@ namespace VJSystem
         // Master fade
         ColorAdjustments _masterColorAdj;
 
-        // Primitive spawning — rows 3-6 each have their own list and coroutine set
-        static readonly PrimitiveType[] _primitiveTypes =
-        {
-            PrimitiveType.Sphere, PrimitiveType.Cube, PrimitiveType.Cylinder,
-            PrimitiveType.Capsule, PrimitiveType.Quad, PrimitiveType.Plane
-        };
-        readonly List<GameObject>[] _spawnedByRow   = { new(), new(), new(), new() };
-        readonly Dictionary<int, Coroutine> _spawnCoroutines = new();
 
         // Per-deck stored values (so standby deck retains its last state)
         float _ch5A, _ch6A, _ch7A, _ch8A;
@@ -241,10 +235,6 @@ namespace VJSystem
             MidiMixRouter.OnMute          -= HandleMute;
             MidiGridRouter.OnRow1         -= HandleMF64Row1;
             MidiGridRouter.OnGridButton   -= HandleMF64GridButton;
-
-            foreach (var co in _spawnCoroutines.Values)
-                if (co != null) StopCoroutine(co);
-            _spawnCoroutines.Clear();
 
             if (DualDeckManager.Instance != null)
                 DualDeckManager.Instance.OnTakeCompleted -= OnTakeCompleted;
@@ -560,11 +550,14 @@ namespace VJSystem
         }
 
         // ------------------------------------------------------------------ //
-        // MF64 — rows 2-6
+        // MF64 — rows 2, 4, 5-8
 
         void HandleMF64GridButton(GridButton btn, bool isNoteOn)
         {
-            if (btn.row == 2 && isNoteOn)
+            if (!isNoteOn) return;
+
+            // Row 2: randomize all cameras
+            if (btn.row == 2)
             {
                 rigA?.SetBehavior(0, CameraBehavior.Still);
                 rigA?.SetBehavior(1, CameraBehavior.Still);
@@ -573,79 +566,29 @@ namespace VJSystem
                 return;
             }
 
-            if (btn.row < 3 || btn.row > 6) return;
-            int listIdx = btn.row - 3;
-
-            if (btn.col == 8)
+            // Row 4: mesh spawn control buttons
+            if (btn.row == 4)
             {
-                if (isNoteOn) ClearSpawned(listIdx);
+                if (btn.col == 1) { meshSpawnA?.Scramble();     meshSpawnB?.Scramble(); }
+                if (btn.col == 2) { meshSpawnA?.ResetCursor();  meshSpawnB?.ResetCursor(); }
                 return;
             }
 
-            int key = btn.row * 10 + btn.col;
-            if (isNoteOn)
+            // Rows 5-8: spawn groups A-D
+            if (btn.row >= 5 && btn.row <= 8)
             {
-                if (!_spawnCoroutines.ContainsKey(key))
-                    _spawnCoroutines[key] = StartCoroutine(SpawnLoop(listIdx));
-            }
-            else
-            {
-                if (_spawnCoroutines.TryGetValue(key, out var co))
+                int groupIndex = btn.row - 5;   // 0 = A, 1 = B, 2 = C, 3 = D
+                if (btn.col == 8)
                 {
-                    if (co != null) StopCoroutine(co);
-                    _spawnCoroutines.Remove(key);
+                    meshSpawnA?.ClearGroup(groupIndex);
+                    meshSpawnB?.ClearGroup(groupIndex);
+                }
+                else
+                {
+                    meshSpawnA?.SpawnInGroup(groupIndex);
+                    meshSpawnB?.SpawnInGroup(groupIndex);
                 }
             }
-        }
-
-        IEnumerator SpawnLoop(int listIdx)
-        {
-            while (true)
-            {
-                SpawnPrimitive(listIdx);
-                yield return new WaitForSeconds(0.2f);
-            }
-        }
-
-        void SpawnPrimitive(int listIdx)
-        {
-            Vector3[] origins =
-            {
-                rigA != null ? rigA.stageOrigin : Vector3.zero,
-                rigB != null ? rigB.stageOrigin : new Vector3(5000f, 0f, 0f)
-            };
-
-            foreach (var origin in origins)
-            {
-                var type = _primitiveTypes[Random.Range(0, _primitiveTypes.Length)];
-                var go   = GameObject.CreatePrimitive(type);
-
-                go.transform.position   = origin + new Vector3(
-                    Random.Range(-4f, 4f), Random.Range(0.2f, 3f), Random.Range(-4f, 4f));
-                go.transform.rotation   = Random.rotation;
-                go.transform.localScale = Vector3.one * Random.Range(0.2f, 1.2f);
-
-                var mat   = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-                var color = Random.ColorHSV(0f, 1f, 0.6f, 1f, 0.8f, 1f);
-                mat.color = color;
-
-                if (Random.value > 0.5f)
-                {
-                    mat.EnableKeyword("_EMISSION");
-                    mat.SetColor("_EmissionColor", color * Random.Range(2f, 8f));
-                    mat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
-                }
-
-                go.GetComponent<Renderer>().material = mat;
-                _spawnedByRow[listIdx].Add(go);
-            }
-        }
-
-        void ClearSpawned(int listIdx)
-        {
-            foreach (var go in _spawnedByRow[listIdx])
-                if (go != null) Destroy(go);
-            _spawnedByRow[listIdx].Clear();
         }
     }
 }
