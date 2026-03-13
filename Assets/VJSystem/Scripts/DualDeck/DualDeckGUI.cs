@@ -267,12 +267,20 @@ namespace VJSystem
             if (newCount != rig.activeLightCount) { rig.activeLightCount = newCount; changed = true; }
             GUILayout.EndHorizontal();
 
+            // Saturation
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Saturation:", GUILayout.Width(80));
+            float newSat = GUILayout.HorizontalSlider(rig.lightSaturation, 0f, 1f, GUILayout.Width(200));
+            GUILayout.Label($"{newSat:F2}", GUILayout.Width(40));
+            if (Mathf.Abs(newSat - rig.lightSaturation) > 0.005f) { rig.lightSaturation = newSat; changed = true; }
+            GUILayout.EndHorizontal();
+
             // Hue
             GUILayout.BeginHorizontal();
             GUILayout.Label("Hue:", GUILayout.Width(80));
             float newHue = GUILayout.HorizontalSlider(rig.hue, 0f, 360f, GUILayout.Width(200));
             var oldBg = GUI.backgroundColor;
-            GUI.backgroundColor = Color.HSVToRGB(newHue / 360f, 0.8f, 1f);
+            GUI.backgroundColor = Color.HSVToRGB(newHue / 360f, Mathf.Max(0.5f, rig.lightSaturation), 1f);
             GUILayout.Label("   ", GUI.skin.box, GUILayout.Width(30));
             GUI.backgroundColor = oldBg;
             if (Mathf.Abs(newHue - rig.hue) > 0.5f) { rig.hue = newHue; changed = true; }
@@ -297,7 +305,7 @@ namespace VJSystem
             // Intensity
             GUILayout.BeginHorizontal();
             GUILayout.Label("Intensity:", GUILayout.Width(80));
-            float newInt = GUILayout.HorizontalSlider(rig.lightIntensity, 0f, 10f, GUILayout.Width(200));
+            float newInt = GUILayout.HorizontalSlider(rig.lightIntensity, 0f, 30f, GUILayout.Width(200));
             GUILayout.Label($"{newInt:F1}", GUILayout.Width(40));
             if (Mathf.Abs(newInt - rig.lightIntensity) > 0.05f) { rig.lightIntensity = newInt; changed = true; }
             GUILayout.EndHorizontal();
@@ -701,7 +709,7 @@ namespace VJSystem
             // Global rotation multiplier (shared across both stages)
             GUILayout.BeginHorizontal();
             GUILayout.Label("Global Rot×:", GUILayout.Width(80));
-            float newMult = GUILayout.HorizontalSlider(SpawnedMeshObject.globalSpeedMultiplier, 0f, 2f, GUILayout.Width(200));
+            float newMult = GUILayout.HorizontalSlider(SpawnedMeshObject.globalSpeedMultiplier, 0.05f, 2f, GUILayout.Width(200));
             GUILayout.Label($"{newMult:F2}×", GUILayout.Width(50));
             if (Mathf.Abs(newMult - SpawnedMeshObject.globalSpeedMultiplier) > 0.01f)
                 SpawnedMeshObject.globalSpeedMultiplier = newMult;

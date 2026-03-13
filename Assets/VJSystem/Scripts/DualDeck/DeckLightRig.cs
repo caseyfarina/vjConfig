@@ -15,6 +15,7 @@ namespace VJSystem
         public float lightRadius = 5f;
         public float lightRange = 15f;
         public float lightIntensity = 0f;
+        [Range(0f, 1f)] public float lightSaturation = 0f;  // 0 = white, 1 = full hue colour
 
         const int MAX_LIGHTS = 50;
         readonly List<Light> _lights = new List<Light>();
@@ -69,6 +70,15 @@ namespace VJSystem
             UpdateLights();
         }
 
+        /// <summary>Randomize positions only — does not touch colour or intensity.</summary>
+        public void RandomizePositionsOnly()
+        {
+            int count = Mathf.Clamp(activeLightCount, 0, MAX_LIGHTS);
+            RandomizePositions(count);
+            for (int i = 0; i < count; i++)
+                _lights[i].transform.position = _positions[i];
+        }
+
         public void SetAllWhite()
         {
             foreach (var light in _lights)
@@ -94,7 +104,7 @@ namespace VJSystem
                 float hueOffset = hueSpread / 100f * ((float)i / Mathf.Max(1, count) - 0.5f);
                 float h = (hue / 360f + hueOffset) % 1f;
                 if (h < 0) h += 1f;
-                _lights[i].color = Color.HSVToRGB(h, 0.8f, 1f);
+                _lights[i].color = Color.HSVToRGB(h, lightSaturation, 1f);
                 _lights[i].intensity = lightIntensity;
                 _lights[i].range = lightRange;
                 _lights[i].shadows = LightShadows.Soft;

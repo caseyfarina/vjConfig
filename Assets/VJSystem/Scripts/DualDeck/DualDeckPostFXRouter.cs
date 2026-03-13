@@ -342,9 +342,9 @@ namespace VJSystem
 
         void HandleMF64Row1(int col)
         {
-            // Col 1-8 sets light count on both rigs and randomizes positions
-            if (lightRigA != null) { lightRigA.activeLightCount = col; lightRigA.RandomizeAndUpdate(); }
-            if (lightRigB != null) { lightRigB.activeLightCount = col; lightRigB.RandomizeAndUpdate(); }
+            // Col 1-8 sets light count then repositions — colour is unchanged
+            if (lightRigA != null) { lightRigA.activeLightCount = col; lightRigA.RandomizePositionsOnly(); }
+            if (lightRigB != null) { lightRigB.activeLightCount = col; lightRigB.RandomizePositionsOnly(); }
         }
 
         void HandleKnob(int channel, int row, float value)
@@ -374,8 +374,8 @@ namespace VJSystem
                 switch (row)
                 {
                     case 1:
-                        if (lightRigA != null) { lightRigA.lightIntensity = value * 20f; lightRigA.UpdateLights(); }
-                        if (lightRigB != null) { lightRigB.lightIntensity = value * 20f; lightRigB.UpdateLights(); }
+                        if (lightRigA != null) { lightRigA.lightIntensity = value * 30f; lightRigA.UpdateLights(); }
+                        if (lightRigB != null) { lightRigB.lightIntensity = value * 30f; lightRigB.UpdateLights(); }
                         break;
                     case 2:
                         if (lightRigA != null) { lightRigA.hue = value * 360f; lightRigA.UpdateLights(); }
@@ -411,10 +411,11 @@ namespace VJSystem
                 return;
             }
 
-            // Ch 5 Row 1: global mesh rotation speed multiplier (0 = stopped, 0.5 = normal, 1 = 2×)
+            // Ch 5 Row 1: global mesh rotation speed multiplier
+            // Floor at 0.05 so the stopped position is reliably reachable on hardware
             if (channel == 5 && row == 1)
             {
-                VJSystem.SpawnedMeshObject.globalSpeedMultiplier = value * 2f;
+                VJSystem.SpawnedMeshObject.globalSpeedMultiplier = 0.05f + value * 1.95f;
                 return;
             }
 
@@ -547,13 +548,24 @@ namespace VJSystem
         }
 
         // ------------------------------------------------------------------ //
-        // MIDI Mix — Mute
+        // MIDI Mix — Mute (toggle white / restore colour)
+
+        bool _lightsWhiteMode = false;
 
         void HandleMute(int channel, bool isNoteOn)
         {
             if (channel != 4 || !isNoteOn) return;
-            lightRigA?.SetAllWhite();
-            lightRigB?.SetAllWhite();
+            _lightsWhiteMode = !_lightsWhiteMode;
+            if (_lightsWhiteMode)
+            {
+                lightRigA?.SetAllWhite();
+                lightRigB?.SetAllWhite();
+            }
+            else
+            {
+                lightRigA?.UpdateLights();
+                lightRigB?.UpdateLights();
+            }
         }
 
         // ------------------------------------------------------------------ //
