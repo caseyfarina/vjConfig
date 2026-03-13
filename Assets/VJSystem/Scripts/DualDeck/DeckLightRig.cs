@@ -17,8 +17,14 @@ namespace VJSystem
         public float lightIntensity = 0f;
         [Range(0f, 1f)] public float lightSaturation = 0f;  // 0 = white, 1 = full hue colour
 
+        [Header("Flash Lights (MF64 Row 3, Cols 1-4 — hold to flash)")]
+        public float flashIntensity = 80f;
+        public float flashRange = 25f;
+
         const int MAX_LIGHTS = 50;
+        const int FLASH_COUNT = 4;
         readonly List<Light> _lights = new List<Light>();
+        readonly List<Light> _flashLights = new List<Light>();
         readonly Vector3[] _positions = new Vector3[MAX_LIGHTS];
         Transform _container;
 
@@ -40,6 +46,21 @@ namespace VJSystem
                 light.bounceIntensity = 0f;
                 go.SetActive(false);
                 _lights.Add(light);
+            }
+
+            for (int i = 0; i < FLASH_COUNT; i++)
+            {
+                var go = new GameObject($"FlashLight_{i}");
+                go.transform.SetParent(_container);
+                var fl = go.AddComponent<Light>();
+                fl.type            = LightType.Point;
+                fl.color           = Color.white;
+                fl.range           = flashRange;
+                fl.intensity       = flashIntensity;
+                fl.shadows         = LightShadows.None;
+                fl.bounceIntensity = 0f;
+                go.SetActive(false);
+                _flashLights.Add(fl);
             }
 
             RandomizePositions(MAX_LIGHTS);
@@ -77,6 +98,26 @@ namespace VJSystem
             RandomizePositions(count);
             for (int i = 0; i < count; i++)
                 _lights[i].transform.position = _positions[i];
+        }
+
+        /// <summary>Activate/deactivate a flash light. On activation, randomizes hemisphere position.</summary>
+        public void SetFlash(int index, bool on)
+        {
+            if (index < 0 || index >= _flashLights.Count) return;
+            var fl = _flashLights[index];
+            if (on)
+            {
+                float cosTheta = Random.Range(0.35f, 1.0f);
+                float sinTheta = Mathf.Sqrt(1f - cosTheta * cosTheta);
+                float phi      = Random.value * Mathf.PI * 2f;
+                fl.transform.position = stageOrigin + Vector3.up * 5f + new Vector3(
+                    sinTheta * Mathf.Cos(phi),
+                    cosTheta,
+                    sinTheta * Mathf.Sin(phi)) * lightRadius;
+                fl.intensity = flashIntensity;
+                fl.range     = flashRange;
+            }
+            fl.gameObject.SetActive(on);
         }
 
         public void SetAllWhite()

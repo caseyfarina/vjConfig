@@ -573,6 +573,15 @@ namespace VJSystem
 
         void HandleMF64GridButton(GridButton btn, bool isNoteOn)
         {
+            // Row 3: flash lights — respond to both note-on (hold) and note-off (release)
+            if (btn.row == 3 && btn.col >= 1 && btn.col <= 4)
+            {
+                int flashIdx = btn.col - 1;
+                lightRigA?.SetFlash(flashIdx, isNoteOn);
+                lightRigB?.SetFlash(flashIdx, isNoteOn);
+                return;
+            }
+
             if (!isNoteOn) return;
 
             // Row 2: randomize all cameras
