@@ -19,17 +19,33 @@ namespace VJSystem
         GUIStyle _smallLabel;
         bool _stylesInit;
 
-        void Update()
+        // Keyboard shortcuts handled in OnGUI via Event.current so they work
+        // regardless of whether the project uses the legacy or new Input System.
+        void HandleKeyboardShortcuts()
         {
-            if (Input.GetKeyDown(KeyCode.F1)) _guiVisible = !_guiVisible;
-            if (Input.GetKeyDown(KeyCode.Space) && deckManager != null) deckManager.Take();
-            if (Input.GetKeyDown(KeyCode.Escape))
+            var e = Event.current;
+            if (e.type != EventType.KeyDown) return;
+
+            if (e.keyCode == KeyCode.F1)
+            {
+                _guiVisible = !_guiVisible;
+                e.Use();
+                return;
+            }
+            if (e.keyCode == KeyCode.Space && deckManager != null)
+            {
+                deckManager.Take();
+                e.Use();
+                return;
+            }
+            if (e.keyCode == KeyCode.Escape)
             {
 #if UNITY_EDITOR
                 UnityEditor.EditorApplication.isPlaying = false;
 #else
                 Application.Quit();
 #endif
+                e.Use();
             }
         }
 
@@ -56,6 +72,7 @@ namespace VJSystem
 
         void OnGUI()
         {
+            HandleKeyboardShortcuts();
             if (!_guiVisible || deckManager == null) return;
             InitStyles();
 
