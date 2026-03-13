@@ -13,7 +13,7 @@ namespace VJSystem
         public Transform contentRoot;
 
         [Header("Initial Content")]
-        public bool autoSpawn = true;
+        public bool autoSpawn = false;
 
         static Material CreateURPMaterial(Color color, bool emissive = false)
         {
