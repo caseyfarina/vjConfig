@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using TMPro;
 using DG.Tweening;
 
@@ -17,7 +18,6 @@ namespace VJSystem
         [SerializeField] ChromaticDisplacementSystem chromaticSystem;
         [SerializeField] VJLightSystem lightSystem;
         [SerializeField] VJSceneSlotSystem sceneSlotSystem;
-        [SerializeField] MidiEventManager midiEventManager;
         [SerializeField] PresetSaveSystem presetSaveSystem;
 
         [Header("UI Elements")]
@@ -51,7 +51,8 @@ namespace VJSystem
         void Update()
         {
             // Toggle visibility
-            if (Input.GetKeyDown(KeyCode.Tab))
+            var kb = Keyboard.current;
+            if (kb != null && kb.tabKey.wasPressedThisFrame)
             {
                 _visible = !_visible;
                 if (canvas != null)
@@ -99,9 +100,6 @@ namespace VJSystem
 
             if (slotsLabel != null && sceneSlotSystem != null)
                 slotsLabel.text = $"SLOTS   {FormatBoolArray(sceneSlotSystem.States, 24)}";
-
-            if (midiLabel != null && midiEventManager != null)
-                midiLabel.text = $"MIDI: {midiEventManager.DeviceName}";
 
             if (savedLabel != null && presetSaveSystem != null)
                 savedLabel.text = $"SAVED: {presetSaveSystem.PresetCount} runtime presets loaded";

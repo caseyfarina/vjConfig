@@ -25,16 +25,6 @@ namespace VJSystem
 
         public bool[] States => _states;
 
-        void OnEnable()
-        {
-            MidiGridRouter.OnLightToggle += HandleLightToggle;
-        }
-
-        void OnDisable()
-        {
-            MidiGridRouter.OnLightToggle -= HandleLightToggle;
-        }
-
         void HandleLightToggle(int col)
         {
             int index = col - 1;

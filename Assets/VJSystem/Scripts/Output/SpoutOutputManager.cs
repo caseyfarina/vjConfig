@@ -44,7 +44,8 @@ namespace VJSystem
         {
             if (_mainRT != null)
             {
-                mainCamera.targetTexture = null;
+                if (mainCamera != null)
+                    mainCamera.targetTexture = null;
                 _mainRT.Release();
                 Destroy(_mainRT);
             }
@@ -60,7 +61,7 @@ namespace VJSystem
 
         void SetupMainOutput()
         {
-            _mainRT = new RenderTexture(outputWidth, outputHeight, 0, RenderTextureFormat.ARGB32)
+            _mainRT = new RenderTexture(outputWidth, outputHeight, 24, RenderTextureFormat.ARGB32)
             {
                 name = "VJOutput_RT"
             };
@@ -80,7 +81,7 @@ namespace VJSystem
         {
             if (previewCamera == null) return;
 
-            _previewRT = new RenderTexture(previewWidth, previewHeight, 0, RenderTextureFormat.ARGB32)
+            _previewRT = new RenderTexture(previewWidth, previewHeight, 24, RenderTextureFormat.ARGB32)
             {
                 name = "VJPreview_RT"
             };

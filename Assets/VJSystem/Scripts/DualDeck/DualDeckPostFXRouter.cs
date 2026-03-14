@@ -587,7 +587,9 @@ namespace VJSystem
         void HandleMF64GridButton(GridButton btn, bool isNoteOn)
         {
             // Row 3: flash lights — respond to both note-on (hold) and note-off (release)
-            if (btn.row == 3 && btn.col >= 1 && btn.col <= 4)
+            // Cols 1-4: white flashes (indices 0-3)
+            // Cols 5-8: coloured flashes (indices 4-7), hue set via MIDI Mix Ch3 Row 2/3
+            if (btn.row == 3 && btn.col >= 1 && btn.col <= 8)
             {
                 int flashIdx = btn.col - 1;
                 lightRigA?.SetFlash(flashIdx, isNoteOn);

@@ -32,18 +32,6 @@ namespace VJSystem
             _ => null
         };
 
-        void OnEnable()
-        {
-            MidiGridRouter.OnPostFXPresetSelect += HandlePresetSelect;
-            MidiGridRouter.OnPostFXRandomize    += HandleRandomize;
-        }
-
-        void OnDisable()
-        {
-            MidiGridRouter.OnPostFXPresetSelect -= HandlePresetSelect;
-            MidiGridRouter.OnPostFXRandomize    -= HandleRandomize;
-        }
-
         void HandlePresetSelect(int row, int col)
         {
             ActiveEffectRow = row;

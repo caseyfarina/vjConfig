@@ -68,11 +68,23 @@ public static class WireMeshSpawnSystems
             Debug.LogWarning("[WireMeshSpawnSystems] No materials found in Assets/Materials/. " +
                              "Run 'VJSystem/Generate VJ Mesh Materials' first.");
 
+        // --- Collect flower prefabs ---
+        var flowerPrefabs = new List<GameObject>();
+        string flowerDir = "Assets/PBR Flower Pack/PBR Flower Pack - URP/Asset/Prefabs";
+        var flowerGuids  = AssetDatabase.FindAssets("t:Prefab", new[] { flowerDir });
+        foreach (var guid in flowerGuids)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(guid));
+            if (prefab != null) flowerPrefabs.Add(prefab);
+        }
+
+        Debug.Log($"[WireMeshSpawnSystems] Found {flowerPrefabs.Count} flower prefabs.");
+
         // --- Create / configure MeshSpawnSystem A ---
-        var sysA = CreateOrFindSystem("MeshSpawn_A", Vector3.zero, meshes, materials, router.transform);
+        var sysA = CreateOrFindSystem("MeshSpawn_A", Vector3.zero, meshes, materials, flowerPrefabs, router.transform);
 
         // --- Create / configure MeshSpawnSystem B ---
-        var sysB = CreateOrFindSystem("MeshSpawn_B", new Vector3(5000f, 0f, 0f), meshes, materials, router.transform);
+        var sysB = CreateOrFindSystem("MeshSpawn_B", new Vector3(5000f, 0f, 0f), meshes, materials, flowerPrefabs, router.transform);
 
         // --- Wire to router ---
         var routerSO = new SerializedObject(router);
@@ -89,12 +101,13 @@ public static class WireMeshSpawnSystems
             UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene());
 
         Debug.Log($"[WireMeshSpawnSystems] Done. " +
-                  $"{meshes.Count} meshes, {materials.Count} materials assigned to MeshSpawn_A and MeshSpawn_B. Scene saved.");
+                  $"{meshes.Count} meshes, {materials.Count} materials, {flowerPrefabs.Count} flower prefabs assigned to MeshSpawn_A and MeshSpawn_B. Scene saved.");
     }
 
     static VJSystem.MeshSpawnSystem CreateOrFindSystem(
         string goName, Vector3 origin,
         List<Mesh> meshes, List<Material> materials,
+        List<GameObject> flowerPrefabs,
         Transform parent)
     {
         var existing = GameObject.Find(goName);
@@ -124,6 +137,11 @@ public static class WireMeshSpawnSystems
         matsProp.arraySize = materials.Count;
         for (int i = 0; i < materials.Count; i++)
             matsProp.GetArrayElementAtIndex(i).objectReferenceValue = materials[i];
+
+        var flowersProp = so.FindProperty("flowerPrefabs");
+        flowersProp.arraySize = flowerPrefabs.Count;
+        for (int i = 0; i < flowerPrefabs.Count; i++)
+            flowersProp.GetArrayElementAtIndex(i).objectReferenceValue = flowerPrefabs[i];
 
         so.ApplyModifiedProperties();
         EditorUtility.SetDirty(sys);

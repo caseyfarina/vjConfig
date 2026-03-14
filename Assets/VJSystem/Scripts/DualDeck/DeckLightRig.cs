@@ -17,12 +17,12 @@ namespace VJSystem
         public float lightIntensity = 0f;
         [Range(0f, 1f)] public float lightSaturation = 0.8f; // used in colour mode; white mode overrides this
 
-        [Header("Flash Lights (MF64 Row 3, Cols 1-4 — hold to flash)")]
+        [Header("Flash Lights (MF64 Row 3, Cols 1-4 white, Cols 5-8 coloured — hold to flash)")]
         public float flashIntensity = 80f;
         public float flashRange = 25f;
 
         const int MAX_LIGHTS = 50;
-        const int FLASH_COUNT = 4;
+        const int FLASH_COUNT = 8;   // 0-3 = white (cols 1-4), 4-7 = coloured (cols 5-8)
         readonly List<Light> _lights = new List<Light>();
         readonly List<Light> _flashLights = new List<Light>();
         readonly Vector3[] _positions = new Vector3[MAX_LIGHTS];
@@ -100,7 +100,8 @@ namespace VJSystem
                 _lights[i].transform.position = _positions[i];
         }
 
-        /// <summary>Activate/deactivate a flash light. On activation, randomizes hemisphere position.</summary>
+        /// <summary>Activate/deactivate a flash light. On activation, randomizes hemisphere position.
+        /// Indices 0-3 are white; indices 4-7 are coloured using the rig's current hue/hueSpread.</summary>
         public void SetFlash(int index, bool on)
         {
             if (index < 0 || index >= _flashLights.Count) return;
@@ -116,6 +117,16 @@ namespace VJSystem
                     sinTheta * Mathf.Sin(phi)) * lightRadius;
                 fl.intensity = flashIntensity;
                 fl.range     = flashRange;
+
+                // Indices 4-7: apply hue from the rig's current hue/hueSpread
+                if (index >= 4)
+                {
+                    int i = index - 4;
+                    float hueOffset = hueSpread / 100f * ((float)i / 3f - 0.5f);
+                    float h = (hue / 360f + hueOffset) % 1f;
+                    if (h < 0f) h += 1f;
+                    fl.color = Color.HSVToRGB(h, 1f, 1f);
+                }
             }
             fl.gameObject.SetActive(on);
         }

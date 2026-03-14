@@ -26,16 +26,6 @@ namespace VJSystem
 
         public bool[] States => _states;
 
-        void OnEnable()
-        {
-            MidiGridRouter.OnSceneSlotToggle += HandleSlotToggle;
-        }
-
-        void OnDisable()
-        {
-            MidiGridRouter.OnSceneSlotToggle -= HandleSlotToggle;
-        }
-
         void Start()
         {
             // Initialize all slots to off

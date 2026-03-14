@@ -32,6 +32,21 @@ namespace VJSystem
         public ClampedFloatParameter depthInfluence = new(1f, 0f, 5f);
 
         // =====================================================================
+        // Source Levels
+        // =====================================================================
+
+        [Header("Source Levels")]
+        [Tooltip("Black point — displacement values at or below this are remapped to 0.")]
+        public ClampedFloatParameter sourceLevelBlack = new(0f, 0f, 1f);
+
+        [Tooltip("White point — displacement values at or above this are remapped to 1.")]
+        public ClampedFloatParameter sourceLevelWhite = new(1f, 0f, 1f);
+
+        [Tooltip("Gamma curve applied after black/white remapping. " +
+                 "1 = linear. <1 = brightens midtones (more displacement). >1 = darkens midtones (less displacement).")]
+        public ClampedFloatParameter sourceLevelGamma = new(1f, 0.1f, 5f);
+
+        // =====================================================================
         // Pre-Blur
         // =====================================================================
 

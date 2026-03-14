@@ -58,6 +58,9 @@ Assets/VJSystem/
       DualDeckGUI.cs                       # IMGUI: Master/DeckA/DeckB/Mapping tabs, Esc quit, F1 toggle
       OutputManager.cs                     # Multi-display output, ProjectionSurface warp, Take RT swaps
       DisplayManager.cs                    # Optional multi-display activation (superseded by OutputManager)
+      MeshSpawnSystem.cs                   # Random-walk mesh spawner, 4 groups (A-C=FBX, D=flowers), DOTween
+      DualDeckPostFXRouter.cs              # PRIMARY MIDI ROUTER — all MF64+MIDI Mix mappings, glitch/VFX/lights
+      MidiDebugMonitor.cs                  # Real-time MIDI state snapshot for GUI display
     PostFX/                                # DISABLED — legacy single-stage PostFX
       IPostFXSystem.cs, PixelSortSystem.cs, ChromaticDisplacementSystem.cs, DepthOfFieldSystem.cs
       PixelSortVolume.cs, ChromaticDisplacementVolume.cs
@@ -67,11 +70,7 @@ Assets/VJSystem/
     Presets/                               # DISABLED — legacy preset system
       PixelSortPresetLibrary.cs, ChromaticPresetLibrary.cs, DoFPresetLibrary.cs
       PresetSaveSystem.cs, RandomizationSystem.cs
-    MIDI/                                  # Available for future dual-deck MIDI routing
-      MidiEventManager.cs                  # Singleton bridge to Minis MIDI input
-      MidiFighter64InputMap.cs             # Note numbers (36-99) → GridButton (row/col)
-      MidiGridRouter.cs                    # Legacy routing (needs replacement for dual-deck)
-      UnityMainThreadDispatcher.cs         # MIDI thread → main thread dispatch
+    # MIDI scripts moved to package — see Assets/midiFighterForUnity-*/Runtime/
     Camera/                                # DISABLED — legacy 8-camera Cinemachine system
       VJCameraSystem.cs, OrbitalDriftExtension.cs, Figure8PathExtension.cs
       HandheldNoiseExtension.cs, ZoomPulseExtension.cs
@@ -154,6 +153,8 @@ Global Volume                              # URP volume (PixelSort/Chromatic ove
 ## Dependencies
 - **DOTween Pro** — parameter tweening (`Assets/Plugins/Demigiant/`)
 - **ProjectionMapper** — in-project package (`Assets/com.projectionmapper/`), HomographyWarp shader, ProjectionSurface used by OutputManager
+- **MidiFighter64 package** — `Assets/midiFighterForUnity-claude-add-midi-test-scene-vtbqj/`; bridges MF64 + Akai MIDI Mix into typed C# events; has its own CLAUDE.md
+- **KinoGlitch** — AnalogGlitchController / DigitalGlitchController on each camera; required by DualDeckPostFXRouter
 - **KlakSpout** (`jp.keijiro.klak.spout` 2.0.6) — Spout output (available, currently disabled)
 - **Cinemachine 3** (`com.unity.cinemachine` 3.1.5) — available for future camera enhancement
 - **Minis** (`jp.keijiro.minis`) — MIDI input via InputSystem
@@ -180,16 +181,85 @@ Global Volume                              # URP volume (PixelSort/Chromatic ove
 - Runtime content uses explicit URP Lit materials (never default Standard shader)
 - Editor setup via `DualDeckBootstrap.cs` (callable from MCP or menu)
 
-## Current State (2026-03-07)
+## MIDI Control Map
+
+### Midi Fighter 64 (8×8 grid, row 1 = top)
+
+Note layout:
+```
+Row 1: [64][65][66][67]  [96][97][98][99]
+Row 2: [60][61][62][63]  [92][93][94][95]
+Row 3: [56][57][58][59]  [88][89][90][91]
+Row 4: [52][53][54][55]  [84][85][86][87]
+Row 5: [48][49][50][51]  [80][81][82][83]
+Row 6: [44][45][46][47]  [72][73][74][75]
+Row 7: [40][41][42][43]  [76][77][78][79]
+Row 8: [36][37][38][39]  [68][69][70][71]
+```
+
+| Row | Cols | Action |
+|-----|------|--------|
+| 1 | 1-8 | Set active light count (N lights) + randomize positions |
+| 2 | 1-8 | Randomize all cameras → Still behavior (both stages) |
+| 3 | 1-4 | White flash lights — hold to activate, release to deactivate |
+| 3 | 5-8 | Coloured flash lights — hold/release; hue/spread from Ch4 knobs R2/R3 |
+| 4 | 1 | Scramble — scatter all spawned meshes to new random positions |
+| 4 | 2 | Reset mesh walk cursor to stage origin |
+| 4 | 3-8 | Unassigned |
+| 5 | 1-7 | Spawn Group A — one FBX mesh per press (col = material slot) |
+| 5 | 8 | Clear Group A |
+| 6 | 1-7 | Spawn Group B |
+| 6 | 8 | Clear Group B |
+| 7 | 1-7 | Spawn Group C |
+| 7 | 8 | Clear Group C |
+| 8 | 1-7 | Spawn Group D — flower prefabs (col ignored) |
+| 8 | 8 | Clear Group D |
+
+### Akai MIDI Mix
+
+**Channel faders (Ch 1-8):**
+| Ch | Effect |
+|----|--------|
+| 1 | AnalogGlitch ScanLineJitter (live deck) |
+| 2 | AnalogGlitch VerticalJump (live deck) |
+| 3 | AnalogGlitch ColorDrift (live deck) |
+| 4 | DigitalGlitch Intensity (live deck) |
+| 5 | ScreenSpaceLensFlare intensity (live deck volume) |
+| 6 | LensFlare first/secondary/warped flare multipliers |
+| 7 | LensFlare streaks intensity |
+| 8 | Bloom intensity |
+
+**Master fader:** Global post-exposure (−10 EV → 0 EV)
+
+**Knobs (Ch, Row):**
+| Ch | R1 | R2 | R3 |
+|----|----|----|-----|
+| 1 | Capacity VFX spawn rate | Capacity VFX hue | Capacity VFX brightness |
+| 2 | Petals VFX spawn rate | — | — |
+| 3 | Directional light brightness | Directional light angle X | Directional light angle Y |
+| 4 | Point light intensity | Point light hue | Point light hue spread |
+| 5 | Global mesh rotation multiplier | Global camera FOV (15–90°) | — |
+| 8 | Fog hue | Fog brightness | Fog density |
+
+**Buttons:**
+- Ch4 Mute: Toggle white / coloured light mode
+- Ch1-4 Rec Arm: Randomize that glitch channel
+
+## Current State (2026-03-13)
 
 ### Active & Working
 - Dual-deck architecture: two stages at (0,0,0) and (5000,0,0)
 - 4 cameras (2/stage) rendering to 1920x1080 RTs
 - 3 camera behaviors: Still, Orbit, Push
 - 0-50 dynamic point lights per stage with hue/spread/intensity
+- Flash lights: 8 per rig — 0-3 white (MF64 row 3 cols 1-4), 4-7 coloured (row 3 cols 5-8); coloured ones sample rig hue/spread at trigger time
 - Take system (hard cut) swaps live/standby decks
 - OutputManager with HomographyWarp GL rendering to Display 1+2
 - IMGUI with 4 tabs: Master (previews), Deck A, Deck B, Mapping (corner pin/crop/brightness/gamma)
+- MeshSpawnSystem per stage — random-walk cursor, 4 groups (A-C = FBX meshes, D = flower prefabs), DOTween scale in/out
+- DualDeckPostFXRouter — full MF64 + MIDI Mix routing: glitch, lens flare, bloom, fog, VFX, lights, mesh spawn
+- MidiDebugMonitor — real-time MIDI state display in GUI
+- MIDI package at `Assets/midiFighterForUnity-claude-add-midi-test-scene-vtbqj/` with its own CLAUDE.md
 - Calibration grid (5x3 checkerboard cubes) as default content
 - Escape to quit, F1 toggle GUI, keyboard corner pin editing
 - ProjectionMapper shaders in Always Included Shaders for builds
@@ -202,7 +272,7 @@ Global Volume                              # URP volume (PixelSort/Chromatic ove
 - Old scene objects (Main Camera, SpinningCubes, CenterSphere, Ground, PointLights)
 
 ### Next Steps
-1. **Add MIDI routing for dual-deck** — new DualDeckMidiRouter replacing MidiGridRouter
+1. ~~**Add MIDI routing for dual-deck**~~ — done (`DualDeckPostFXRouter`)
 2. **Test multi-display output** — build and test with 3 monitors/projectors
 3. **Prefab library system** — VJPrefabManifest, dropdown selection per stage
 4. **Quality tiers** — dual URP pipeline assets (live=full, edit=reduced)

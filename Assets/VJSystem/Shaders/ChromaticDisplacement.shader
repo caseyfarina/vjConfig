@@ -36,6 +36,9 @@ Shader "Hidden/PostProcess/ChromaticDisplacement"
             SAMPLER(sampler_CameraDepthTexture);
 
             float _DepthInfluence;
+            float _SourceLevelBlack;
+            float _SourceLevelWhite;
+            float _SourceLevelGamma;
 
             struct AppData { uint vertexID : SV_VertexID; };
             struct V2F { float4 posCS : SV_POSITION; float2 uv : TEXCOORD0; };
@@ -46,6 +49,14 @@ Shader "Hidden/PostProcess/ChromaticDisplacement"
                 o.posCS = GetFullScreenTriangleVertexPosition(v.vertexID);
                 o.uv    = GetFullScreenTriangleTexCoord(v.vertexID);
                 return o;
+            }
+
+            // Remap value through black/white/gamma levels
+            float ApplyLevels(float val, float black, float white, float gamma)
+            {
+                float range = max(white - black, 0.0001);
+                float remapped = saturate((val - black) / range);
+                return pow(remapped, gamma);
             }
 
             float4 Frag(V2F i) : SV_Target
@@ -62,6 +73,9 @@ Shader "Hidden/PostProcess/ChromaticDisplacement"
                     float3 col = SAMPLE_TEXTURE2D(_BlitTexture, sampler_LinearClamp, i.uv).rgb;
                     displacement = dot(col, float3(0.2126, 0.7152, 0.0722));
                 #endif
+
+                // Apply source levels: black point, white point, gamma
+                displacement = ApplyLevels(displacement, _SourceLevelBlack, _SourceLevelWhite, _SourceLevelGamma);
 
                 return float4(displacement, 0, 0, 1);
             }
@@ -83,7 +97,6 @@ Shader "Hidden/PostProcess/ChromaticDisplacement"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
 
-            float4 _BlitTexture_TexelSize;
             float  _BlurRadius;
 
             static const float weights[3] = { 0.227027, 0.316215, 0.070270 };
@@ -133,7 +146,6 @@ Shader "Hidden/PostProcess/ChromaticDisplacement"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
 
-            float4 _BlitTexture_TexelSize;
             float  _BlurRadius;
 
             static const float weights[3] = { 0.227027, 0.316215, 0.070270 };
@@ -185,7 +197,6 @@ Shader "Hidden/PostProcess/ChromaticDisplacement"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
 
-            float4 _BlitTexture_TexelSize;
             float  _DilateRadius;
 
             struct AppData { uint vertexID : SV_VertexID; };
@@ -234,7 +245,6 @@ Shader "Hidden/PostProcess/ChromaticDisplacement"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
 
-            float4 _BlitTexture_TexelSize;
             float  _DilateRadius;
 
             struct AppData { uint vertexID : SV_VertexID; };
@@ -282,7 +292,6 @@ Shader "Hidden/PostProcess/ChromaticDisplacement"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
 
-            float4 _BlitTexture_TexelSize;
             float  _MaskFeather;
 
             static const float weights[3] = { 0.227027, 0.316215, 0.070270 };
@@ -332,7 +341,6 @@ Shader "Hidden/PostProcess/ChromaticDisplacement"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
 
-            float4 _BlitTexture_TexelSize;
             float  _MaskFeather;
 
             static const float weights[3] = { 0.227027, 0.316215, 0.070270 };
@@ -405,7 +413,6 @@ Shader "Hidden/PostProcess/ChromaticDisplacement"
             float  _RadialFalloffStart;
             float  _RadialFalloffEnd;
             float  _RadialFalloffPower;
-            float4 _BlitTexture_TexelSize;
 
             // Custom palette colors (HDR)
             float4 _ColorA;

@@ -23,16 +23,6 @@ namespace VJSystem
             ? cameras[_activeIndex].gameObject.name
             : "None";
 
-        void OnEnable()
-        {
-            MidiGridRouter.OnCameraSelect += HandleCameraSelect;
-        }
-
-        void OnDisable()
-        {
-            MidiGridRouter.OnCameraSelect -= HandleCameraSelect;
-        }
-
         void Start()
         {
             if (brain != null)

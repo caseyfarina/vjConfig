@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace VJSystem
 {
@@ -27,7 +28,6 @@ namespace VJSystem
     public class PresetSaveSystem : MonoBehaviour
     {
         [SerializeField] PostFXRouter postFXRouter;
-        [SerializeField] KeyCode saveKey = KeyCode.S;
 
         public static event Action<string> OnPresetSaved;  // preset name
 
@@ -57,14 +57,17 @@ namespace VJSystem
 
         void Update()
         {
+            var kb = Keyboard.current;
+            if (kb == null) return;
+
             // Save: Ctrl+S
-            if (Input.GetKey(KeyCode.LeftControl) && Input.GetKeyDown(saveKey))
+            if (kb.leftCtrlKey.isPressed && kb.sKey.wasPressedThisFrame)
             {
                 SaveCurrentPreset();
             }
 
             // Recall mode: Alt held
-            bool altHeld = Input.GetKey(KeyCode.LeftAlt);
+            bool altHeld = kb.leftAltKey.isPressed;
             if (altHeld && !_recallMode)
             {
                 _recallMode = true;
@@ -80,12 +83,12 @@ namespace VJSystem
                 // Filter to active effect type
                 var filtered = GetFilteredPresets();
 
-                if (Input.GetKeyDown(KeyCode.DownArrow))
+                if (kb.downArrowKey.wasPressedThisFrame)
                     _recallIndex = Mathf.Min(_recallIndex + 1, filtered.Count - 1);
-                if (Input.GetKeyDown(KeyCode.UpArrow))
+                if (kb.upArrowKey.wasPressedThisFrame)
                     _recallIndex = Mathf.Max(_recallIndex - 1, 0);
 
-                if (Input.GetKeyDown(KeyCode.Return) && _recallIndex >= 0 && _recallIndex < filtered.Count)
+                if (kb.enterKey.wasPressedThisFrame && _recallIndex >= 0 && _recallIndex < filtered.Count)
                 {
                     ApplyRuntimePreset(filtered[_recallIndex]);
                 }

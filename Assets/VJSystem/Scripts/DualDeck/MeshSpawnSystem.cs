@@ -25,6 +25,9 @@ namespace VJSystem
         public Mesh[]     meshes;
         public Material[] materials;
 
+        [Header("Flower Prefabs (Row 8 / Group 3)")]
+        public GameObject[] flowerPrefabs;
+
         [Header("Walk Settings")]
         [Tooltip("Base step distance per spawn")]
         public float stepMagnitude  = 1.5f;
@@ -93,10 +96,20 @@ namespace VJSystem
         // ------------------------------------------------------------------ //
 
         /// <summary>Spawn one mesh at current cursor position, then advance cursor.
-        /// buttonCol 1-7 selects the fixed material assigned to that button slot.</summary>
+        /// buttonCol 1-7 selects the fixed material assigned to that button slot.
+        /// Group 3 (row 8) spawns flower prefabs with their own materials.</summary>
         public void SpawnInGroup(int groupIndex, int buttonCol)
         {
             if (groupIndex < 0 || groupIndex > 3) return;
+
+            // Group 3 = flowers
+            if (groupIndex == 3)
+            {
+                if (flowerPrefabs == null || flowerPrefabs.Length == 0) return;
+                SpawnFlower();
+                return;
+            }
+
             if (meshes == null || meshes.Length == 0) return;
             if (materials == null || materials.Length == 0) return;
 
@@ -143,6 +156,42 @@ namespace VJSystem
                 .SetEase(Ease.OutQuad);
 
             _groups[groupIndex].Add(smo);
+        }
+
+        void SpawnFlower()
+        {
+            PruneGroup(3);
+
+            // Advance cursor
+            Vector2 dir = Random.insideUnitCircle.normalized;
+            float dist  = stepMagnitude + Random.Range(-stepVariance, stepVariance);
+            _cursor.x  += dir.x * dist;
+            _cursor.z  += dir.y * dist;
+            _cursor.y   = stageOrigin.y + spawnHeight + Random.Range(0f, spawnHeightRange);
+
+            // Wrap cursor
+            Vector2 xzOffset = new Vector2(_cursor.x - stageOrigin.x, _cursor.z - stageOrigin.z);
+            if (xzOffset.magnitude > walkRadius)
+            {
+                xzOffset  = Random.insideUnitCircle * (walkRadius * 0.5f);
+                _cursor.x = stageOrigin.x + xzOffset.x;
+                _cursor.z = stageOrigin.z + xzOffset.y;
+            }
+
+            var prefab = flowerPrefabs[Random.Range(0, flowerPrefabs.Length)];
+            var go     = Object.Instantiate(prefab, _cursor, Random.rotation, _spawnRoot);
+            go.name    = "Flower_G3";
+
+            // Start at zero scale, tween in
+            go.transform.localScale = Vector3.zero;
+            go.transform.DOScale(Vector3.one * Random.Range(minScale, maxScale), scaleInDuration)
+                .SetEase(Ease.OutQuad);
+
+            // Add rotation component (preserves prefab's existing materials)
+            var smo = go.AddComponent<SpawnedMeshObject>();
+            smo.rotationSpeed = Random.Range(rotationSpeedMin, rotationSpeedMax);
+
+            _groups[3].Add(smo);
         }
 
         /// <summary>Scale-out and destroy all objects in this group (staggered).</summary>

@@ -68,6 +68,9 @@ namespace VJSystem
         private static readonly int s_ColorA              = Shader.PropertyToID("_ColorA");
         private static readonly int s_ColorB              = Shader.PropertyToID("_ColorB");
         private static readonly int s_ColorC              = Shader.PropertyToID("_ColorC");
+        private static readonly int s_SourceLevelBlack   = Shader.PropertyToID("_SourceLevelBlack");
+        private static readonly int s_SourceLevelWhite   = Shader.PropertyToID("_SourceLevelWhite");
+        private static readonly int s_SourceLevelGamma   = Shader.PropertyToID("_SourceLevelGamma");
 
         // Keywords
         private const string k_UseDepthSource = "_USE_DEPTH_SOURCE";
@@ -117,6 +120,11 @@ namespace VJSystem
             m_Material.SetFloat(s_DisplacementAmount, volume.displacementAmount.value);
             m_Material.SetFloat(s_DisplacementScale, volume.displacementScale.value);
             m_Material.SetFloat(s_BlurRadius, volume.blurRadius.value);
+
+            // Source levels
+            m_Material.SetFloat(s_SourceLevelBlack, volume.sourceLevelBlack.value);
+            m_Material.SetFloat(s_SourceLevelWhite, volume.sourceLevelWhite.value);
+            m_Material.SetFloat(s_SourceLevelGamma, volume.sourceLevelGamma.value);
 
             m_Material.SetFloat(s_ChannelAAmount, volume.channelAAmount.value);
             m_Material.SetFloat(s_ChannelBAmount, volume.channelBAmount.value);
